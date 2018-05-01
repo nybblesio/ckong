@@ -9,4 +9,4 @@ find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 
-add_executable(ckong main.c)
+add_executable(ckong main.c str.c str.h)
