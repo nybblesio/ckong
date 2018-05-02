@@ -5,10 +5,12 @@
 #include <assert.h>
 #include "str.h"
 
-int main(int argc, char** argv) {
+void test_str_module() {
     str_t* hello_world = str_clone("HELLO WORLD!");
     str_print(hello_world, stdout);
+
     fprintf(stdout, "\nlen = %d", str_len(hello_world));
+
     str_printc('\n', stdout);
 
     str_t* hello = str_left(hello_world, 5);
@@ -28,6 +30,10 @@ int main(int argc, char** argv) {
     str_free(combined_again);
     str_free(world_bang);
     str_free(hello_world);
+}
+
+int main(int argc, char** argv) {
+    //test_str_module();
 
     return 0;
 }

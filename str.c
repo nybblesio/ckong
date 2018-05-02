@@ -6,6 +6,7 @@
 void str_free(str_t* str) {
     assert(str != NULL);
     assert(str->data != NULL);
+
     free(str);
     free(str->data);
 }

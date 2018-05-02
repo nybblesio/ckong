@@ -16,4 +16,5 @@ add_executable(
         palette.c palette.h
         tile.c tile.h
         sprite.c sprite.h
+        actor.c actor.h
         tile_map.c tile_map.h)
