@@ -3,13 +3,11 @@
 #include <assert.h>
 #include "str.h"
 
-// N.B. not thread safe
-static char s_buffer[65537];
-
 void str_free(str_t* str) {
     assert(str != NULL);
     assert(str->data != NULL);
     free(str);
+    free(str->data);
 }
 
 str_t* str_new(uint16_t len) {
@@ -18,16 +16,13 @@ str_t* str_new(uint16_t len) {
         abort();
     str->data = (uint8_t*) malloc(len);
     str->len = len;
-    str->pos = str->len;
+    str->pos = 0;
     return str;
 }
 
 str_t* str_clone(const char* lhs) {
-    str_t* str = (str_t*) malloc(sizeof(str_t));
-    if (str == NULL)
-        abort();
-    str->data = (uint8_t*) strdup(lhs);
-    str->len = (uint16_t) strlen(lhs);
+    str_t* str = str_new((uint16_t) strlen(lhs));
+    memcpy(str->data, lhs, str->len);
     str->pos = str->len;
     return str;
 }
@@ -42,10 +37,7 @@ void str_print(const str_t* str, FILE* file) {
     assert(str != NULL);
     assert(file != NULL);
 
-    memcpy(&s_buffer, str->data, str->len);
-    s_buffer[str->len] = '\0';
-
-    fprintf(file, "%s", s_buffer);
+    fwrite(str->data, sizeof(uint8_t), str->len, file);
 }
 
 // left("hello world", 5) == "hello"
@@ -53,11 +45,9 @@ str_t* str_left(const str_t* lhs, uint16_t len) {
     assert(lhs != NULL);
     assert(len > 0 && len <= lhs->len);
 
-    str_t* str = (str_t*) malloc(sizeof(str_t));
-    str->data = (uint8_t*) malloc(len);
-    str->len = len;
-    str->pos = len;
+    str_t* str = str_new(len);
     memcpy(str->data, lhs->data, len);
+    str->pos = len;
     return str;
 }
 
@@ -66,14 +56,12 @@ str_t* str_right(const str_t* lhs, uint16_t len) {
     assert(lhs != NULL);
     assert(len > 0 && len <= lhs->len);
 
-    str_t* str = (str_t*) malloc(sizeof(str_t));
-    str->data = (uint8_t*) malloc(len);
-    str->len = len;
-    str->pos = len;
+    str_t* str = str_new(len);
     memcpy(
         str->data,
         (lhs->data + (lhs->len - 1)) - len,
         len);
+    str->pos = len;
     return str;
 }
 
@@ -109,11 +97,9 @@ str_t* str_concat(const str_t* lhs, const str_t* rhs) {
     assert(lhs != NULL);
     assert(rhs != NULL);
 
-    str_t* str = (str_t*) malloc(sizeof(str_t));
-    str->data = (uint8_t*) malloc(lhs->len + rhs->len);
-    str->len = lhs->len + rhs->len;
-    str->pos = str->len;
+    str_t* str = str_new(lhs->len + rhs->len);
     memcpy(str->data, lhs->data, lhs->len);
     memcpy(str->data + lhs->len, rhs->data, rhs->len);
+    str->pos = str->len;
     return str;
 }
