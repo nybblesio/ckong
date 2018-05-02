@@ -33,6 +33,12 @@ uint16_t str_len(const str_t* str) {
     return str->len;
 }
 
+void str_printc(char c, FILE* file) {
+    assert(file != NULL);
+
+    fwrite(&c, sizeof(char), 1, file);
+}
+
 void str_print(const str_t* str, FILE* file) {
     assert(str != NULL);
     assert(file != NULL);

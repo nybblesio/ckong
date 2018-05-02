@@ -9,17 +9,17 @@ int main(int argc, char** argv) {
     str_t* hello_world = str_clone("HELLO WORLD!");
     str_print(hello_world, stdout);
     fprintf(stdout, "\nlen = %d", str_len(hello_world));
-    fprintf(stdout, "\n");
+    str_printc('\n', stdout);
 
     str_t* hello = str_left(hello_world, 5);
     str_print(hello, stdout);
 
-    fprintf(stdout, "\n");
+    str_printc('\n', stdout);
 
     str_t* world_bang = str_right(hello_world, 5);
     str_print(world_bang, stdout);
 
-    fprintf(stdout, "\n");
+    str_printc('\n', stdout);
 
     str_t* combined_again = str_concat(hello, world_bang);
     str_print(combined_again, stdout);

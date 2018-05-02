@@ -17,6 +17,8 @@ uint16_t str_len(const str_t* str);
 
 str_t* str_clone(const char* value);
 
+void str_printc(char c, FILE* file);
+
 void str_print(const str_t* str, FILE* file);
 
 str_t* str_left(const str_t* lhs, uint16_t len);
