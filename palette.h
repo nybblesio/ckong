@@ -1,8 +1,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdlib.h>
 
-const uint8_t palette_max = 64;
+static const uint8_t palette_max = 64;
 
 typedef struct palette_entry {
     uint8_t red;
@@ -15,3 +16,4 @@ typedef struct palette {
     palette_entry_t entries[4];
 } palette_t;
 
+const palette_t* palette(uint8_t index);

@@ -641,3 +641,7 @@ static palette_t s_palettes[palette_max] = {
         }
     },
 };
+
+const palette_t* palette(uint8_t index) {
+    return &s_palettes[index];
+}
