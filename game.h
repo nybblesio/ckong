@@ -14,13 +14,15 @@
 
 #include <stdbool.h>
 #include "str.h"
-#include "linked_list.h"
 #include "window.h"
+#include "linked_list.h"
+#include "game_controller.h"
 
 typedef struct game_context {
     bool valid;
     window_t window;
     linked_list_node_t* messages;
+    game_controller_t* controller;
 } game_context_t;
 
 game_context_t* game_context_new();

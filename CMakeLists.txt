@@ -20,12 +20,15 @@ add_executable(
         main.c
         str.c str.h
         game.c game.h
-        palette.c palette.h
         tile.c tile.h
-        sprite.c sprite.h
         actor.c actor.h
+        video.c video.h
+        sprite.c sprite.h
+        window.c window.h
+        palette.c palette.h
         tile_map.c tile_map.h
-        window.c window.h linked_list.c linked_list.h)
+        linked_list.c linked_list.h
+        game_controller.c game_controller.h)
 
 target_link_libraries(
         ckong

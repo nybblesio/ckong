@@ -25,7 +25,9 @@ void str_free(str_t* str);
 
 str_t* str_new(uint16_t len);
 
-uint16_t str_len(const str_t* str);
+uint16_t str_pos(const str_t* str);
+
+uint16_t str_size(const str_t* str);
 
 str_t* str_clone(const char* value);
 

@@ -19,6 +19,10 @@
 struct SDL_Window;
 struct SDL_Surface;
 struct SDL_Renderer;
+struct SDL_Texture;
+
+static const uint16_t scale_x = 4;
+static const uint16_t scale_y = 4;
 
 static const uint16_t screen_width = 256;
 static const uint16_t screen_height = 256;
@@ -33,8 +37,9 @@ typedef struct window {
     uint32_t scale_y;
     struct SDL_Window* window;
     struct SDL_Surface* surface;
-    struct SDL_Renderer* renderer;
+    struct SDL_Texture* texture;
     linked_list_node_t* messages;
+    struct SDL_Renderer* renderer;
 } window_t;
 
 window_t window_create();

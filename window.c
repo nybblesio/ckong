@@ -19,8 +19,8 @@ window_t window_create() {
     result.valid = false;
     result.messages = linked_list_new_node();
 
-    result.scale_x = 3;
-    result.scale_y = 3;
+    result.scale_x = scale_x;
+    result.scale_y = scale_y;
     result.width = screen_width;
     result.height = screen_height;
     result.window = SDL_CreateWindow(
@@ -48,6 +48,19 @@ window_t window_create() {
         result.messages->data = str_clone("Unable to create SDL renderer.");
         return result;
     }
+
+    result.texture = SDL_CreateTexture(
+        result.renderer,
+        SDL_PIXELFORMAT_ARGB8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        screen_width,
+        screen_height);
+
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+    SDL_RenderSetLogicalSize(
+        result.renderer,
+        screen_width,
+        screen_height);
 
     int x, y;
     SDL_GetWindowPosition(result.window, &x, &y);

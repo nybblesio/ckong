@@ -13,11 +13,13 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include "game.h"
+#include "video.h"
 #include "window.h"
 
 game_context_t* game_context_new() {
     game_context_t* context = malloc(sizeof(game_context_t));
     context->messages = linked_list_new_node();
+    context->controller = NULL;
     context->valid = false;
     return context;
 }
@@ -25,6 +27,8 @@ game_context_t* game_context_new() {
 bool game_run(game_context_t* context) {
     bool quit = false;
     SDL_Event e;
+
+    SDL_Surface* vg_surface = video_surface();
 
     while (!quit) {
         while (SDL_PollEvent(&e) != 0) {
@@ -42,13 +46,17 @@ bool game_run(game_context_t* context) {
                 }
             }
         }
-        SDL_SetRenderDrawColor(
+        video_update();
+        SDL_UpdateTexture(
+            context->window.texture,
+            NULL,
+            vg_surface->pixels,
+            vg_surface->pitch);
+        SDL_RenderCopy(
             context->window.renderer,
-            0x7f,
-            0x69,
-            0x49,
-            0xff);
-        SDL_RenderClear(context->window.renderer);
+            context->window.texture,
+            NULL,
+            NULL);
         SDL_RenderPresent(context->window.renderer);
     }
 
@@ -75,6 +83,24 @@ bool game_init(game_context_t* context) {
         return false;
     }
 
+    int32_t number_of_joysticks = joystick_count();
+    for (int32_t i = 0; i < number_of_joysticks; ++i) {
+        if (joystick_is_controller(i)) {
+            context->controller = game_controller_open(i);
+            break;
+        }
+    }
+
+    video_init();
+    video_set_bg(tile_map(long_introduction));
+
+    spr_control_block_t* mario = video_sprite(0);
+    mario->y = 80;
+    mario->x = 32;
+    mario->tile = 0;
+    mario->palette = 2;
+    mario->flags |= f_spr_enabled | f_spr_hflip;
+
     context->valid = true;
 
     return true;
@@ -85,6 +111,11 @@ void game_shutdown(game_context_t* context) {
 
     if (context == NULL)
         return;
+
+    game_controller_close(context->controller);
+
+    if (context->window.texture != NULL)
+        SDL_DestroyTexture(context->window.texture);
 
     if (context->window.renderer != NULL)
         SDL_DestroyRenderer(context->window.renderer);
@@ -97,4 +128,6 @@ void game_shutdown(game_context_t* context) {
 
     if (context->messages != NULL)
         linked_list_free(context->messages);
+
+    video_shutdown();
 }
