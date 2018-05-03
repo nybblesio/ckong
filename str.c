@@ -5,10 +5,11 @@
 
 void str_free(str_t* str) {
     assert(str != NULL);
-    assert(str->data != NULL);
+
+    if (str->data != NULL)
+        free(str->data);
 
     free(str);
-    free(str->data);
 }
 
 str_t* str_new(uint16_t len) {
