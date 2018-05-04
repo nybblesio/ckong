@@ -16,6 +16,19 @@
 #include "actor.h"
 #include "video.h"
 #include "window.h"
+#include "state_machine.h"
+
+static player_t s_player1 = {
+    .lives = 3,
+    .level = 0,
+    .score = 0,
+};
+
+static state_context_t s_state_context = {
+    .player = &s_player1,
+    .level = NULL,
+    .controller = NULL
+};
 
 game_context_t* game_context_new() {
     game_context_t* context = malloc(sizeof(game_context_t));
@@ -29,7 +42,6 @@ bool game_run(game_context_t* context) {
     bool quit = false;
 
     SDL_Event e;
-
     SDL_Surface* vg_surface = video_surface();
 
     while (!quit) {
@@ -49,55 +61,7 @@ bool game_run(game_context_t* context) {
             }
         }
 
-        actor_t* mario = actor(actor_mario);
-
-        if (game_controller_button(context->controller, button_dpad_right)) {
-            if (mario->x < 224)
-                mario->x += 2;
-            mario->data1 &= ~mario_left;
-            mario->data1 |= mario_right | mario_run;
-            actor_animation(mario, anim_mario_walk_right);
-        } else if (game_controller_button(context->controller, button_dpad_left)) {
-            if (mario->x > 16)
-                mario->x -= 2;
-            mario->data1 &= ~mario_right;
-            mario->data1 |= mario_left | mario_run;
-            actor_animation(mario, anim_mario_walk_left);
-        } else {
-            mario->data1 &= ~mario_run;
-        }
-
-        if (game_controller_button(context->controller, button_a)
-        &&  (mario->data1 & mario_jump) == 0) {
-            mario->data1 |= mario_jump;
-            mario->data2 = 20;
-        }
-
-        int8_t dir = 1;
-        if ((mario->data1 & mario_left) != 0) {
-            dir = 1;
-        } else if ((mario->data1 & mario_right) != 0) {
-            dir = 2;
-        }
-
-        if ((mario->data1 & mario_jump) != 0) {
-            if (mario->data2 > 10)
-                mario->y--;
-            else
-                mario->y++;
-            mario->data2--;
-            if (mario->data2 == 0)
-                mario->data1 &= ~mario_jump;
-            else {
-                actor_animation(
-                    mario,
-                    dir == 2 ? anim_mario_jump_right : anim_mario_jump_left);
-            }
-        } else if ((mario->data1 & mario_run) == 0) {
-            actor_animation(
-                mario,
-                dir == 2 ? anim_mario_stand_right : anim_mario_stand_left);
-        }
+        state_update(&s_state_context);
 
         actor_update();
 
@@ -122,9 +86,6 @@ bool game_run(game_context_t* context) {
 }
 
 bool game_init(game_context_t* context) {
-    context->valid = false;
-    context->messages = linked_list_new_node();
-
     int sdl_result = SDL_Init(SDL_INIT_EVERYTHING);
     if (sdl_result < 0) {
         context->messages->data = str_clone("SDL failed to initialize");
@@ -148,14 +109,11 @@ bool game_init(game_context_t* context) {
             break;
         }
     }
+    s_state_context.controller = context->controller;
 
     video_init();
-    video_set_bg(tile_map(long_introduction));
 
-    actor_t* mario = actor(actor_mario);
-    mario->x = 32;
-    mario->y = 224;
-    mario->data1 = 1;
+    state_push(&s_state_context, state_long_introduction);
 
     context->valid = true;
 
@@ -163,6 +121,8 @@ bool game_init(game_context_t* context) {
 }
 
 void game_shutdown(game_context_t* context) {
+    state_pop(&s_state_context);
+
     IMG_Quit();
 
     if (context == NULL)

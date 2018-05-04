@@ -30,21 +30,24 @@ void log_messages(linked_list_node_t* node) {
 }
 
 int main(int argc, char** argv) {
+    int rc = 0;
+
     game_context_t* context = game_context_new();
 
     if (!game_init(context)) {
         log_messages(context->messages);
         log_messages(context->window.messages);
-        return 1;
+        rc = 1;
+    } else {
+        if (!game_run(context)) {
+            log_messages(context->messages);
+            log_messages(context->window.messages);
+            rc = 1;
+        }
+
+        game_shutdown(context);
     }
 
-    if (!game_run(context)) {
-        log_messages(context->messages);
-        log_messages(context->window.messages);
-    }
-
-    game_shutdown(context);
     free(context);
-
-    return 0;
+    return rc;
 }

@@ -70,10 +70,10 @@ static void video_bg_update(void) {
 
         block->flags &= ~f_bg_changed;
 
-        tx += 8;
-        if (tx == 256) {
+        tx += tile_width;
+        if (tx == screen_width) {
             tx = 0;
-            ty += 8;
+            ty += tile_height;
         }
     }
     SDL_UnlockSurface(s_bg_surface);
@@ -177,9 +177,8 @@ void video_set_bg(const tile_map_t* map) {
 
     for (uint32_t i = 0; i < tile_map_height * tile_map_width; i++) {
         s_bg_control[i].tile = map->data[i].tile;
-        s_bg_control[i].flags = map->data[i].flags;
         s_bg_control[i].palette = map->data[i].palette;
-        s_bg_control[i].flags |= f_bg_enabled | f_bg_changed;
+        s_bg_control[i].flags = map->data[i].flags | f_bg_enabled | f_bg_changed;
     }
 }
 

@@ -23,11 +23,14 @@ add_executable(
         tile.c tile.h
         actor.c actor.h
         video.c video.h
+        level.c level.h
+        player.c player.h
         sprite.c sprite.h
         window.c window.h
         palette.c palette.h
         tile_map.c tile_map.h
         linked_list.c linked_list.h
+        state_machine.c state_machine.h
         game_controller.c game_controller.h)
 
 target_link_libraries(
