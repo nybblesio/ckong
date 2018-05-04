@@ -102,13 +102,7 @@ bool game_init(game_context_t* context) {
         return false;
     }
 
-    int32_t number_of_joysticks = joystick_count();
-    for (int32_t i = 0; i < number_of_joysticks; ++i) {
-        if (joystick_is_controller(i)) {
-            context->controller = game_controller_open(i);
-            break;
-        }
-    }
+    context->controller = game_controller_open();
     s_state_context.controller = context->controller;
 
     video_init();

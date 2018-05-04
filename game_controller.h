@@ -48,10 +48,6 @@ bool game_controller_button(
     game_controller_t* controller,
     game_controller_button_t button);
 
-int32_t joystick_count(void);
-
-bool joystick_is_controller(int32_t index);
-
-game_controller_t* game_controller_open(int32_t index);
+game_controller_t* game_controller_open();
 
 void game_controller_close(game_controller_t* controller);

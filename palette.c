@@ -12,7 +12,7 @@
 
 #include "palette.h"
 
-static palette_t s_palettes[palette_max] = {
+static palette_t s_palettes[PALETTE_MAX] = {
     // #0
     {
         {

@@ -15,8 +15,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-static const uint8_t tile_map_width = 32;
-static const uint8_t tile_map_height = 32;
+#define TILE_MAP_WIDTH (32)
+#define TILE_MAP_HEIGHT (32)
+#define TILE_MAP_SIZE (TILE_MAP_HEIGHT * TILE_MAP_WIDTH)
 
 typedef enum tile_maps {
     long_introduction
@@ -29,7 +30,7 @@ typedef struct tile_map_entry {
 } tile_map_entry_t;
 
 typedef struct tile_map {
-    tile_map_entry_t data[tile_map_height* tile_map_width];
+    tile_map_entry_t data[TILE_MAP_SIZE];
 } tile_map_t;
 
 const tile_map_t* tile_map(tile_maps_t map);

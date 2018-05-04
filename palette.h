@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-static const uint8_t palette_max = 64;
+#define PALETTE_MAX (64)
 
 typedef struct palette_entry {
     uint8_t red;
