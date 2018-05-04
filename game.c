@@ -13,6 +13,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include "game.h"
+#include "actor.h"
 #include "video.h"
 #include "window.h"
 
@@ -26,6 +27,7 @@ game_context_t* game_context_new() {
 
 bool game_run(game_context_t* context) {
     bool quit = false;
+
     SDL_Event e;
 
     SDL_Surface* vg_surface = video_surface();
@@ -46,17 +48,73 @@ bool game_run(game_context_t* context) {
                 }
             }
         }
+
+        actor_t* mario = actor(actor_mario);
+
+        if (game_controller_button(context->controller, button_dpad_right)) {
+            if (mario->x < 224)
+                mario->x += 2;
+            mario->data1 &= ~mario_left;
+            mario->data1 |= mario_right | mario_run;
+            actor_animation(mario, anim_mario_walk_right);
+        } else if (game_controller_button(context->controller, button_dpad_left)) {
+            if (mario->x > 16)
+                mario->x -= 2;
+            mario->data1 &= ~mario_right;
+            mario->data1 |= mario_left | mario_run;
+            actor_animation(mario, anim_mario_walk_left);
+        } else {
+            mario->data1 &= ~mario_run;
+        }
+
+        if (game_controller_button(context->controller, button_a)
+        &&  (mario->data1 & mario_jump) == 0) {
+            mario->data1 |= mario_jump;
+            mario->data2 = 20;
+        }
+
+        int8_t dir = 1;
+        if ((mario->data1 & mario_left) != 0) {
+            dir = 1;
+        } else if ((mario->data1 & mario_right) != 0) {
+            dir = 2;
+        }
+
+        if ((mario->data1 & mario_jump) != 0) {
+            if (mario->data2 > 10)
+                mario->y--;
+            else
+                mario->y++;
+            mario->data2--;
+            if (mario->data2 == 0)
+                mario->data1 &= ~mario_jump;
+            else {
+                actor_animation(
+                    mario,
+                    dir == 2 ? anim_mario_jump_right : anim_mario_jump_left);
+            }
+        } else if ((mario->data1 & mario_run) == 0) {
+            actor_animation(
+                mario,
+                dir == 2 ? anim_mario_stand_right : anim_mario_stand_left);
+        }
+
+        actor_update();
+
         video_update();
+
         SDL_UpdateTexture(
             context->window.texture,
             NULL,
             vg_surface->pixels,
             vg_surface->pitch);
+
         SDL_RenderCopy(
             context->window.renderer,
             context->window.texture,
             NULL,
             NULL);
+
         SDL_RenderPresent(context->window.renderer);
     }
 
@@ -94,12 +152,10 @@ bool game_init(game_context_t* context) {
     video_init();
     video_set_bg(tile_map(long_introduction));
 
-    spr_control_block_t* mario = video_sprite(0);
-    mario->y = 80;
+    actor_t* mario = actor(actor_mario);
     mario->x = 32;
-    mario->tile = 0;
-    mario->palette = 2;
-    mario->flags |= f_spr_enabled | f_spr_hflip;
+    mario->y = 224;
+    mario->data1 = 1;
 
     context->valid = true;
 

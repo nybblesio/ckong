@@ -14,8 +14,23 @@
 
 #include <stdint.h>
 
+typedef enum actors {
+    actor_mario,
+} actors_t;
+
+typedef enum animations {
+    anim_none,
+    anim_mario_stand_left,
+    anim_mario_stand_right,
+    anim_mario_walk_left,
+    anim_mario_walk_right,
+    anim_mario_jump_left,
+    anim_mario_jump_right,
+} animations_t;
+
 typedef enum actor_flags {
-    none = 0b00000000,
+    f_actor_none    = 0b00000000,
+    f_actor_enabled = 0b00000001,
 } actor_flags_t;
 
 typedef struct animation_frame_tile {
@@ -43,6 +58,14 @@ typedef struct actor {
     uint8_t frame;
     uint16_t data1;
     uint16_t data2;
+    uint32_t next_tick;
     actor_flags_t flags;
     animation_t* animation;
+    animations_t animation_type;
 } actor_t;
+
+void actor_update(void);
+
+actor_t* actor(actors_t actor);
+
+void actor_animation(actor_t* actor, animations_t animation);

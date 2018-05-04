@@ -49,13 +49,13 @@ static void video_bg_update(void) {
         bool horizontal_flip = (block->flags & f_bg_hflip) != 0;
         bool vertical_flip = (block->flags & f_bg_vflip) != 0;
 
-        uint8_t sy = (uint8_t) (vertical_flip ? tile_height : 0);
+        uint8_t sy = (uint8_t) (vertical_flip ? tile_height - 1 : 0);
         int8_t syd = (int8_t) (vertical_flip ? -1 : 1);
         int8_t sxd = (int8_t) (horizontal_flip ? -1 : 1);
 
         for (uint32_t y = 0; y < tile_height; y++) {
             uint8_t* p = s_bg_surface->pixels + ((ty + y) * s_bg_surface->pitch + (tx * 4));
-            uint8_t sx = (uint8_t) (horizontal_flip ? tile_width : 0);
+            uint8_t sx = (uint8_t) (horizontal_flip ? tile_width - 1 : 0);
             for (uint32_t x = 0; x < tile_width; x++) {
                 const uint32_t pixel_offset = sy * tile_width + sx;
                 const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
@@ -99,7 +99,7 @@ static void video_fg_update(void) {
         bool horizontal_flip = (block->flags & f_spr_hflip) != 0;
         bool vertical_flip = (block->flags & f_spr_vflip) != 0;
 
-        uint8_t sy = (uint8_t) (vertical_flip ? sprite_height : 0);
+        uint8_t sy = (uint8_t) (vertical_flip ? sprite_height - 1 : 0);
         int8_t syd = (int8_t) (vertical_flip ? -1 : 1);
         int8_t sxd = (int8_t) (horizontal_flip ? -1 : 1);
 
@@ -107,7 +107,7 @@ static void video_fg_update(void) {
             uint8_t* p = s_fg_surface->pixels +
                 ((block->y + y) * s_fg_surface->pitch +
                  (block->x * 4));
-            uint8_t sx = (uint8_t) (horizontal_flip ? sprite_width : 0);
+            uint8_t sx = (uint8_t) (horizontal_flip ? sprite_width - 1 : 0);
             for (uint32_t x = 0; x < sprite_width; x++) {
                 const uint32_t pixel_offset = sy * sprite_width + sx;
                 const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
@@ -156,6 +156,16 @@ void video_update(void) {
 void video_shutdown(void) {
     SDL_FreeSurface(s_bg_surface);
     SDL_FreeSurface(s_fg_surface);
+}
+
+void video_reset_sprites(void) {
+    for (uint32_t i = 0; i < sprite_max; i++) {
+        s_spr_control[i].x = 0;
+        s_spr_control[i].y = 0;
+        s_spr_control[i].tile = 0;
+        s_spr_control[i].palette = 0;
+        s_spr_control[i].flags = f_spr_none;
+    }
 }
 
 SDL_Surface* video_surface(void) {

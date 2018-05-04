@@ -59,7 +59,9 @@ void video_update(void);
 
 void video_shutdown(void);
 
-SDL_Surface* video_surface(void);
+void video_reset_sprites(void);
+
+struct SDL_Surface* video_surface(void);
 
 void video_set_bg(const tile_map_t* map);
 

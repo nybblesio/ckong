@@ -18,6 +18,15 @@
 #include "linked_list.h"
 #include "game_controller.h"
 
+typedef enum mario_flags {
+    mario_none   = 0b00000000,
+    mario_right  = 0b00000001,
+    mario_left   = 0b00000010,
+    mario_jump   = 0b00000100,
+    mario_hammer = 0b00001000,
+    mario_run    = 0b00010000,
+} mario_flags_t;
+
 typedef struct game_context {
     bool valid;
     window_t window;
