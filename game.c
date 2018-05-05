@@ -12,6 +12,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "log.h"
 #include "game.h"
 #include "actor.h"
 #include "video.h"
@@ -50,6 +51,7 @@ static bool should_quit(void) {
 }
 
 game_context_t* game_context_new() {
+    log_message(category_app, "create empty game_context_t");
     game_context_t* context = malloc(sizeof(game_context_t));
     context->messages = linked_list_new_node();
     context->controller = NULL;
@@ -86,17 +88,20 @@ bool game_run(game_context_t* context) {
 }
 
 bool game_init(game_context_t* context) {
+    log_message(category_app, "SDL_Init all the things.");
     int sdl_result = SDL_Init(SDL_INIT_EVERYTHING);
     if (sdl_result < 0) {
         context->messages->data = str_clone("SDL failed to initialize");
         return false;
     }
 
+    log_message(category_app, "IMG_Init for IMG_INIT_PNG.");
     if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) == 0) {
         context->messages->data = str_clone("SDL_image failed to initialize");
         return false;
     }
 
+    log_message(category_app, "Create application window.");
     context->window = window_create();
     if (!context->window.valid) {
         return false;
@@ -115,24 +120,31 @@ bool game_init(game_context_t* context) {
 }
 
 void game_shutdown(game_context_t* context) {
+    log_message(category_app, "pop last state from stack.");
     state_pop(&s_state_context);
 
+    log_message(category_app, "IMG_Quit.");
     IMG_Quit();
 
     if (context == NULL)
         return;
 
+    log_message(category_app, "close & free game_controller_t.");
     game_controller_close(context->controller);
 
+    log_message(category_app, "destroy streaming texture.");
     if (context->window.texture != NULL)
         SDL_DestroyTexture(context->window.texture);
 
+    log_message(category_app, "destroy renderer.");
     if (context->window.renderer != NULL)
         SDL_DestroyRenderer(context->window.renderer);
 
+    log_message(category_app, "destroy window.");
     if (context->window.window != NULL)
         SDL_DestroyWindow(context->window.window);
 
+    log_message(category_app, "free messages list.");
     if (context->window.messages != NULL)
         linked_list_free(context->window.messages);
 

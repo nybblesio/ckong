@@ -13,12 +13,14 @@
 #include <SDL2/SDL.h>
 #include "window.h"
 #include "str.h"
+#include "log.h"
 
 window_t window_create() {
     window_t result;
     result.valid = false;
     result.messages = linked_list_new_node();
 
+    log_message(category_video, "Create SDL window.");
     result.scale_x = scale_x;
     result.scale_y = scale_y;
     result.width = screen_width;
@@ -39,6 +41,7 @@ window_t window_create() {
     //result.surface = SDL_GetWindowSurface(result.window);
     result.surface = NULL;
 
+    log_message(category_video, "Create SDL renderer: accelerated, vsync.");
     result.renderer = SDL_CreateRenderer(
         result.window,
         -1,
@@ -55,17 +58,33 @@ window_t window_create() {
         SDL_TEXTUREACCESS_STREAMING,
         screen_width,
         screen_height);
+    log_message(category_video,
+                "SDL streaming texture: w=%d, h=%d",
+                screen_width,
+                screen_height);
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
     SDL_RenderSetLogicalSize(
         result.renderer,
         screen_width,
         screen_height);
+    log_message(category_video,
+                "Scale quality hint: %s.",
+                SDL_GetHint(SDL_HINT_RENDER_SCALE_QUALITY));
+    log_message(category_video,
+                "Render logical size: w=%d, h=%d",
+                screen_width,
+                screen_height);
 
     int x, y;
     SDL_GetWindowPosition(result.window, &x, &y);
     result.x = (uint32_t) x;
     result.y = (uint32_t) y;
+    log_message(category_video, "Window position: x=%d, y=%d", result.x, result.y);
+    log_message(category_video,
+                "Window size: w=%d, h=%d",
+                result.width * result.scale_x,
+                result.height * result.scale_y);
 
     result.valid = true;
     return result;

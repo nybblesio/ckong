@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "log.h"
 #include "str.h"
 #include "game.h"
 
@@ -31,6 +32,9 @@ void log_messages(linked_list_node_t* node) {
 
 int main(int argc, char** argv) {
     int rc = 0;
+
+    log_init();
+    log_message(category_app, "C Kong begin.");
 
     game_context_t* context = game_context_new();
 

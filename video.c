@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <SDL2/SDL_surface.h>
+#include "log.h"
 #include "tile.h"
 #include "video.h"
 #include "sprite.h"
@@ -129,21 +130,26 @@ static void video_fg_update(void) {
 }
 
 void video_init(void) {
+    log_message(category_video, "allocate RGBA8888 bg surface.");
     s_bg_surface = SDL_CreateRGBSurfaceWithFormat(
         0,
         screen_width,
         screen_height,
         32,
         SDL_PIXELFORMAT_RGBA8888);
+    log_message(category_video, "set s_bg_surface blend mode: none.");
     SDL_SetSurfaceBlendMode(s_bg_surface, SDL_BLENDMODE_NONE);
 
+    log_message(category_video, "allocate RGBA8888 fg surface.");
     s_fg_surface = SDL_CreateRGBSurfaceWithFormat(
         0,
         screen_width,
         screen_height,
         32,
         SDL_PIXELFORMAT_RGBA8888);
+    log_message(category_video, "set s_fg_surface blend mode: none.");
     SDL_SetSurfaceBlendMode(s_fg_surface, SDL_BLENDMODE_NONE);
+    log_message(category_video, "set s_bg_surface RLE enabled.");
     SDL_SetSurfaceRLE(s_fg_surface, SDL_TRUE);
 }
 
@@ -153,7 +159,9 @@ void video_update(void) {
 }
 
 void video_shutdown(void) {
+    log_message(category_video, "free bg surface.");
     SDL_FreeSurface(s_bg_surface);
+    log_message(category_video, "free fg surface.");
     SDL_FreeSurface(s_fg_surface);
 }
 

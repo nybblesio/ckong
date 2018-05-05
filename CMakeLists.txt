@@ -18,6 +18,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 add_executable(
         ckong
         main.c
+        log.c log.h
         str.c str.h
         game.c game.h
         tile.c tile.h
