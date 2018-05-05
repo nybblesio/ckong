@@ -30,6 +30,25 @@ static state_context_t s_state_context = {
     .controller = NULL
 };
 
+static bool should_quit(void) {
+    SDL_Event e;
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_QUIT) {
+            return true;
+        } else if (e.type == SDL_KEYDOWN) {
+            switch (e.key.keysym.sym) {
+                case SDLK_ESCAPE: {
+                    return true;
+                }
+                default: {
+                    break;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 game_context_t* game_context_new() {
     game_context_t* context = malloc(sizeof(game_context_t));
     context->messages = linked_list_new_node();
@@ -39,28 +58,9 @@ game_context_t* game_context_new() {
 }
 
 bool game_run(game_context_t* context) {
-    bool quit = false;
-
-    SDL_Event e;
     SDL_Surface* vg_surface = video_surface();
 
-    while (!quit) {
-        while (SDL_PollEvent(&e) != 0) {
-            if (e.type == SDL_QUIT) {
-                quit = true;
-            } else if (e.type == SDL_KEYDOWN) {
-                switch (e.key.keysym.sym) {
-                    case SDLK_ESCAPE: {
-                        quit = true;
-                        break;
-                    }
-                    default: {
-                        break;
-                    }
-                }
-            }
-        }
-
+    while (!should_quit()) {
         state_update(&s_state_context);
 
         actor_update();
