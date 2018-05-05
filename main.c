@@ -1,33 +1,57 @@
+// --------------------------------------------------------------------------
+//
+// C Kong
+// Copyright (C) 2018 Jeff Panici
+// All rights reserved.
+//
+// This software source file is licensed according to the
+// MIT License.  Refer to the LICENSE file distributed along
+// with this source file to learn more.
+//
+// --------------------------------------------------------------------------
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "log.h"
 #include "str.h"
+#include "game.h"
+
+void log_messages(linked_list_node_t* node) {
+    linked_list_node_t* current_node = node;
+    while (current_node != NULL) {
+        if (current_node->data != NULL) {
+            str_print((const str_t*) current_node->data, stderr);
+            str_printc('\n', stderr);
+        }
+        current_node = current_node->next;
+    }
+}
 
 int main(int argc, char** argv) {
-    str_t* hello_world = str_clone("HELLO WORLD!");
-    str_print(hello_world, stdout);
-    fprintf(stdout, "\nlen = %d", str_len(hello_world));
-    fprintf(stdout, "\n");
+    int rc = 0;
 
-    str_t* hello = str_left(hello_world, 5);
-    str_print(hello, stdout);
+    log_init();
+    log_message(category_app, "C Kong begin.");
 
-    fprintf(stdout, "\n");
+    game_context_t* context = game_context_new();
 
-    str_t* world_bang = str_right(hello_world, 5);
-    str_print(world_bang, stdout);
+    if (!game_init(context)) {
+        log_messages(context->messages);
+        log_messages(context->window.messages);
+        rc = 1;
+    } else {
+        if (!game_run(context)) {
+            log_messages(context->messages);
+            log_messages(context->window.messages);
+            rc = 1;
+        }
 
-    fprintf(stdout, "\n");
+        game_shutdown(context);
+    }
 
-    str_t* combined_again = str_concat(hello, world_bang);
-    str_print(combined_again, stdout);
-
-    str_free(hello);
-    str_free(combined_again);
-    str_free(world_bang);
-    str_free(hello_world);
-
-    return 0;
+    free(context);
+    return rc;
 }

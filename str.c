@@ -1,54 +1,66 @@
+// --------------------------------------------------------------------------
+//
+// C Kong
+// Copyright (C) 2018 Jeff Panici
+// All rights reserved.
+//
+// This software source file is licensed according to the
+// MIT License.  Refer to the LICENSE file distributed along
+// with this source file to learn more.
+//
+// --------------------------------------------------------------------------
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include "str.h"
 
-// N.B. not thread safe
-static char buffer[65537];
-
-str_t* str_clone(const char* str) {
-    str_t* string = (str_t*) malloc(sizeof(str_t));
-    if (string == NULL) {
-        abort();
-    }
-    string->data = (uint8_t*) strdup(str);
-    string->len = (uint16_t) strlen(str);
-    return string;
-}
-
-str_t* str_new(uint16_t len) {
-    str_t* string = (str_t*) malloc(sizeof(str_t));
-    if (string == NULL) {
-        abort();
-    }
-    string->data = (uint8_t*) malloc(len);
-    string->len = len;
-    return string;
-}
-
 void str_free(str_t* str) {
     assert(str != NULL);
-    assert(str->data != NULL);
+
+    if (str->data != NULL)
+        free(str->data);
+
     free(str);
 }
 
+str_t* str_new(uint16_t len) {
+    str_t* str = (str_t*) malloc(sizeof(str_t));
+    if (str == NULL)
+        abort();
+    str->data = (uint8_t*) malloc(len);
+    str->len = len;
+    str->pos = 0;
+    return str;
+}
+
+str_t* str_clone(const char* lhs) {
+    str_t* str = str_new((uint16_t) strlen(lhs));
+    memcpy(str->data, lhs, str->len);
+    str->pos = str->len;
+    return str;
+}
+
+uint16_t str_pos(const str_t* str) {
+    assert(str != NULL);
+    return str->pos;
+}
+
 // "hello" == 5
-uint16_t str_len(str_t* str) {
+uint16_t str_size(const str_t* str) {
     assert(str != NULL);
     return str->len;
 }
 
-// concat("hello ", "world") == "hello world"
-str_t* str_concat(const str_t* lhs, const str_t* rhs) {
-    assert(lhs != NULL);
-    assert(rhs != NULL);
+void str_printc(char c, FILE* file) {
+    assert(file != NULL);
+    fwrite(&c, sizeof(char), 1, file);
+}
 
-    str_t* str = (str_t*) malloc(sizeof(str_t));
-    str->data = (uint8_t*) malloc(lhs->len + rhs->len);
-    str->len = lhs->len + rhs->len;
-    memcpy(str->data, lhs->data, lhs->len);
-    memcpy(str->data + lhs->len, rhs->data, rhs->len);
-    return str;
+void str_print(const str_t* str, FILE* file) {
+    assert(str != NULL);
+    assert(file != NULL);
+    fwrite(str->data, sizeof(uint8_t), str->len, file);
 }
 
 // left("hello world", 5) == "hello"
@@ -56,10 +68,9 @@ str_t* str_left(const str_t* lhs, uint16_t len) {
     assert(lhs != NULL);
     assert(len > 0 && len <= lhs->len);
 
-    str_t* str = (str_t*) malloc(sizeof(str_t));
-    str->data = (uint8_t*) malloc(len);
-    str->len = len;
+    str_t* str = str_new(len);
     memcpy(str->data, lhs->data, len);
+    str->pos = len;
     return str;
 }
 
@@ -68,22 +79,46 @@ str_t* str_right(const str_t* lhs, uint16_t len) {
     assert(lhs != NULL);
     assert(len > 0 && len <= lhs->len);
 
-    str_t* str = (str_t*) malloc(sizeof(str_t));
-    str->data = (uint8_t*) malloc(len);
-    str->len = len;
+    str_t* str = str_new(len);
     memcpy(
         str->data,
         (lhs->data + (lhs->len - 1)) - len,
         len);
+    str->pos = len;
     return str;
 }
 
-void str_print(str_t* str, FILE* file) {
+uint16_t str_append(str_t* str, const str_t* lhs) {
     assert(str != NULL);
-    assert(file != NULL);
+    assert(lhs != NULL);
 
-    memcpy(&buffer, str->data, str->len);
-    buffer[str->len] = '\0';
+    uint16_t new_len = str->pos + lhs->len;
+    if (new_len > str->len)
+        str->data = realloc(str->data, new_len);
+    str->len = new_len;
+    memcpy(str->data + str->pos, lhs->data, lhs->len);
+    return str->len;
+}
 
-    fprintf(file, "%s", buffer);
+uint16_t str_appendz(str_t* str, const char* lhs) {
+    assert(str != NULL);
+    assert(lhs != NULL);
+
+    str_t temp;
+    temp.data = (uint8_t*) lhs;
+    temp.len = (uint16_t) strlen(lhs);
+    temp.pos = temp.len;
+    return str_append(str, &temp);
+}
+
+// concat("hello ", "world") == "hello world"
+str_t* str_concat(const str_t* lhs, const str_t* rhs) {
+    assert(lhs != NULL);
+    assert(rhs != NULL);
+
+    str_t* str = str_new(lhs->len + rhs->len);
+    memcpy(str->data, lhs->data, lhs->len);
+    memcpy(str->data + lhs->len, rhs->data, rhs->len);
+    str->pos = str->len;
+    return str;
 }
