@@ -20,6 +20,8 @@
 #include "palette.h"
 #include "tile_map.h"
 
+static rect_t s_clip_rect;
+
 static SDL_Surface* s_bg_surface;
 
 static SDL_Surface* s_fg_surface;
@@ -71,7 +73,7 @@ static void video_bg_update(void) {
         block->flags &= ~f_bg_changed;
 
         tx += TILE_WIDTH;
-        if (tx == screen_width) {
+        if (tx == SCREEN_WIDTH) {
             tx = 0;
             ty += TILE_HEIGHT;
         }
@@ -104,22 +106,29 @@ static void video_fg_update(void) {
         int8_t sxd = (int8_t) (horizontal_flip ? -1 : 1);
 
         for (uint32_t y = 0; y < SPRITE_HEIGHT; y++) {
-            uint8_t* p = s_fg_surface->pixels +
-                ((block->y + y) * s_fg_surface->pitch +
-                 (block->x * 4));
-            uint8_t sx = (uint8_t) (horizontal_flip ? SPRITE_WIDTH - 1 : 0);
-            for (uint32_t x = 0; x < SPRITE_WIDTH; x++) {
-                const uint32_t pixel_offset = (const uint32_t) (sy * SPRITE_WIDTH + sx);
-                const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
-                if (pal_entry->alpha == 0x00)
-                    p += 4;
-                else {
-                    *p++ = pal_entry->red;
-                    *p++ = pal_entry->green;
-                    *p++ = pal_entry->blue;
-                    *p++ = pal_entry->alpha;
+            uint32_t ty = block->y + y;
+            if (ty > s_clip_rect.top
+            &&  ty < s_clip_rect.top + s_clip_rect.height) {
+                uint8_t* p = s_fg_surface->pixels + (ty * s_fg_surface->pitch + (block->x * 4));
+                uint8_t sx = (uint8_t) (horizontal_flip ? SPRITE_WIDTH - 1 : 0);
+                for (uint32_t x = 0; x < SPRITE_WIDTH; x++) {
+                    uint32_t tx = block->x + x;
+                    if (tx < s_clip_rect.left || tx > s_clip_rect.left + s_clip_rect.width) {
+                        p += 4;
+                    } else {
+                        const uint32_t pixel_offset = (const uint32_t) (sy * SPRITE_WIDTH + sx);
+                        const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
+                        if (pal_entry->alpha == 0x00)
+                            p += 4;
+                        else {
+                            *p++ = pal_entry->red;
+                            *p++ = pal_entry->green;
+                            *p++ = pal_entry->blue;
+                            *p++ = pal_entry->alpha;
+                        }
+                    }
+                    sx += sxd;
                 }
-                sx += sxd;
             }
             sy += syd;
         }
@@ -130,11 +139,16 @@ static void video_fg_update(void) {
 }
 
 void video_init(void) {
+//    rect_t temp = {.left = 64, .top = 32, .width = 128, .height = 224};
+//    video_clip_rect(temp);
+
+    video_clip_rect_clear();
+
     log_message(category_video, "allocate RGBA8888 bg surface.");
     s_bg_surface = SDL_CreateRGBSurfaceWithFormat(
         0,
-        screen_width,
-        screen_height,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
         32,
         SDL_PIXELFORMAT_RGBA8888);
     log_message(category_video, "set s_bg_surface blend mode: none.");
@@ -143,8 +157,8 @@ void video_init(void) {
     log_message(category_video, "allocate RGBA8888 fg surface.");
     s_fg_surface = SDL_CreateRGBSurfaceWithFormat(
         0,
-        screen_width,
-        screen_height,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
         32,
         SDL_PIXELFORMAT_RGBA8888);
     log_message(category_video, "set s_fg_surface blend mode: none.");
@@ -177,6 +191,20 @@ void video_reset_sprites(void) {
 
 SDL_Surface* video_surface(void) {
     return s_fg_surface;
+}
+
+void video_clip_rect_clear(void) {
+    s_clip_rect.top = 8;
+    s_clip_rect.left = 0;
+    s_clip_rect.width = SCREEN_WIDTH;
+    s_clip_rect.height = (int16_t) (SCREEN_HEIGHT - s_clip_rect.top);
+}
+
+void video_clip_rect(rect_t rect) {
+    s_clip_rect.top = rect.top;
+    s_clip_rect.left = rect.left;
+    s_clip_rect.width = rect.width;
+    s_clip_rect.height = rect.height;
 }
 
 void video_set_bg(const tile_map_t* map) {

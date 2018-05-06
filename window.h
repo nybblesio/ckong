@@ -21,11 +21,10 @@ struct SDL_Surface;
 struct SDL_Renderer;
 struct SDL_Texture;
 
-static const uint16_t scale_x = 4;
-static const uint16_t scale_y = 4;
-
-static const uint16_t screen_width = 256;
-static const uint16_t screen_height = 256;
+#define SCALE_X (4)
+#define SCALE_Y (4)
+#define SCREEN_WIDTH (256)
+#define SCREEN_HEIGHT (256)
 
 typedef struct window {
     bool valid;

@@ -35,6 +35,13 @@ typedef enum bg_flags {
     f_bg_changed   = 0b00001000,
 } bg_flags_t;
 
+typedef struct rect {
+    int16_t left;
+    int16_t top;
+    int16_t width;
+    int16_t height;
+} rect_t;
+
 typedef struct bg_control_block {
     uint16_t tile;
     uint8_t flags;
@@ -60,6 +67,10 @@ void video_update(void);
 void video_shutdown(void);
 
 void video_reset_sprites(void);
+
+void video_clip_rect_clear(void);
+
+void video_clip_rect(rect_t rect);
 
 struct SDL_Surface* video_surface(void);
 

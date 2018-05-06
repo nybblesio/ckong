@@ -71,6 +71,16 @@ static bool long_introduction_update(state_context_t* context) {
         mario->data2 = 20;
     }
 
+    // XXX: temporary test code
+    if (game_controller_button(context->controller, button_dpad_up)) {
+        mario->y -= 2;
+    }
+
+    if (game_controller_button(context->controller, button_dpad_down)) {
+        mario->y += 2;
+    }
+    // XXX: temporary test code
+
     int8_t dir = 1;
     if ((mario->data1 & mario_left) != 0) {
         dir = 1;

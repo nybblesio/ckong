@@ -21,10 +21,10 @@ window_t window_create() {
     result.messages = linked_list_new_node();
 
     log_message(category_video, "Create SDL window.");
-    result.scale_x = scale_x;
-    result.scale_y = scale_y;
-    result.width = screen_width;
-    result.height = screen_height;
+    result.scale_x = SCALE_X;
+    result.scale_y = SCALE_Y;
+    result.width = SCREEN_WIDTH;
+    result.height = SCREEN_HEIGHT;
     result.window = SDL_CreateWindow(
         "C11 Kong",
         SDL_WINDOWPOS_CENTERED,
@@ -56,25 +56,25 @@ window_t window_create() {
         result.renderer,
         SDL_PIXELFORMAT_ARGB8888,
         SDL_TEXTUREACCESS_STREAMING,
-        screen_width,
-        screen_height);
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT);
     log_message(category_video,
                 "SDL streaming texture: w=%d, h=%d",
-                screen_width,
-                screen_height);
+                SCREEN_WIDTH,
+                SCREEN_HEIGHT);
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
     SDL_RenderSetLogicalSize(
         result.renderer,
-        screen_width,
-        screen_height);
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT);
     log_message(category_video,
                 "Scale quality hint: %s.",
                 SDL_GetHint(SDL_HINT_RENDER_SCALE_QUALITY));
     log_message(category_video,
                 "Render logical size: w=%d, h=%d",
-                screen_width,
-                screen_height);
+                SCREEN_WIDTH,
+                SCREEN_HEIGHT);
 
     int x, y;
     SDL_GetWindowPosition(result.window, &x, &y);
