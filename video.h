@@ -61,6 +61,12 @@ typedef struct spr_control_block {
     uint32_t data2;
 } spr_control_block_t;
 
+void video_bg_str(
+    const char* str,
+    uint8_t y,
+    uint8_t x,
+    uint8_t palette);
+
 void video_init(void);
 
 void video_update(void);

@@ -10,8 +10,11 @@
 //
 // --------------------------------------------------------------------------
 
+#include "game_controller.h"
 #include "state_machine.h"
 #include "palette.h"
+#include "machine.h"
+#include "player.h"
 #include "actor.h"
 #include "video.h"
 #include "game.h"
@@ -44,6 +47,11 @@ static state_t* s_state_stack[32];
 
 static uint8_t s_stack_index = 32;
 
+// ----------------------------------------------------------------------------
+//
+// Tile Map Editor State
+//
+// ----------------------------------------------------------------------------
 typedef struct tile_editor_state {
     uint8_t index;
     uint8_t x;
@@ -52,11 +60,6 @@ typedef struct tile_editor_state {
 
 static tile_editor_state_t s_tile_editor;
 
-// ----------------------------------------------------------------------------
-//
-// Tile Map Editor State
-//
-// ----------------------------------------------------------------------------
 static void tile_map_select(bool flag) {
     bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
     if (!flag)
@@ -161,6 +164,7 @@ static bool tile_map_editor_update(state_context_t* context) {
 }
 
 static bool tile_map_editor_leave(state_context_t* context) {
+    tile_map_save();
     return true;
 }
 
@@ -176,6 +180,9 @@ static bool long_introduction_enter(state_context_t* context) {
     mario->x = 32;
     mario->y = 224;
     mario->data1 = mario_right;
+
+    machine_header_update();
+    player1_header_update();
 
     return true;
 }

@@ -12,20 +12,19 @@
 
 #pragma once
 
-#include <stdlib.h>
-#include <stdbool.h>
 #include <stdint.h>
 
-typedef struct player {
-    uint8_t lives;
-    uint8_t level;
-    uint32_t score;
-} player_t;
+typedef struct machine {
+    uint32_t high_score;
+    uint8_t credits;
+} machine_t;
 
-player_t* player1(void);
+void machine_init(void);
 
-player_t* player2(void);
+machine_t* machine(void);
 
-void player1_header_update(void);
+void machine_load_config(void);
 
-void player2_header_update(void);
+void machine_save_config(void);
+
+void machine_header_update(void);

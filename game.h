@@ -13,10 +13,7 @@
 #pragma once
 
 #include <stdbool.h>
-#include "str.h"
 #include "window.h"
-#include "linked_list.h"
-#include "game_controller.h"
 
 typedef enum mario_flags {
     mario_none   = 0b00000000,
@@ -26,6 +23,9 @@ typedef enum mario_flags {
     mario_hammer = 0b00001000,
     mario_run    = 0b00010000,
 } mario_flags_t;
+
+typedef struct linked_list_node linked_list_node_t;
+typedef struct game_controller game_controller_t;
 
 typedef struct game_context {
     bool valid;

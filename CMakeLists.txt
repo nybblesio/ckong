@@ -38,6 +38,7 @@ add_executable(
         sprite.c sprite.h
         window.c window.h
         palette.c palette.h
+        machine.c machine.h
         tile_map.c tile_map.h
         linked_list.c linked_list.h
         state_machine.c state_machine.h

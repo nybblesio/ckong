@@ -22,3 +22,5 @@ typedef struct level {
 } level_t;
 
 level_t* level(uint8_t number);
+
+void level_header_update(void);

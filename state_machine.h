@@ -15,13 +15,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "level.h"
-#include "player.h"
-#include "game_controller.h"
+
+typedef struct level level_t;
+typedef struct player player_t;
+typedef struct machine machine_t;
+typedef struct game_controller game_controller_t;
 
 typedef struct state_context {
     level_t* level;
     player_t* player;
+    machine_t* machine;
     game_controller_t* controller;
 } state_context_t;
 

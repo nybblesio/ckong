@@ -30,6 +30,30 @@ static spr_control_block_t s_spr_control[SPRITE_MAX];
 
 static bg_control_block_t s_bg_control[TILE_MAP_SIZE];
 
+void video_bg_str(
+        const char* str,
+        uint8_t y,
+        uint8_t x,
+        uint8_t palette) {
+    assert(str != NULL);
+
+    size_t length = strlen(str);
+    for (uint8_t i = 0; i < length; i++) {
+        bg_control_block_t* block = video_tile(y, x + i);
+        if (str[i] == 0x20) {
+            block->tile = 0x0a;
+            block->palette = 0x0f;
+        } else if (str[i] == '=') {
+            block->tile = 52;
+            block->palette = palette;
+        } else {
+            block->tile = (uint16_t) (str[i] - 48);
+            block->palette = palette;
+        }
+        block->flags |= f_bg_changed;
+    }
+}
+
 void video_reset_bg(void) {
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
         s_bg_control[i].tile = 0;

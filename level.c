@@ -10,6 +10,7 @@
 //
 // --------------------------------------------------------------------------
 
+#include <stdio.h>
 #include "level.h"
 
 static level_t s_levels[] = {
@@ -20,4 +21,7 @@ static level_t s_levels[] = {
 
 level_t* level(uint8_t number) {
     return &s_levels[number];
+}
+
+void level_header_update(void) {
 }
