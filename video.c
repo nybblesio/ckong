@@ -30,26 +30,38 @@ static spr_control_block_t s_spr_control[SPRITE_MAX];
 
 static bg_control_block_t s_bg_control[TILE_MAP_SIZE];
 
+void video_reset_bg(void) {
+    for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
+        s_bg_control[i].tile = 0;
+        s_bg_control[i].palette = 0;
+        s_bg_control[i].flags = f_bg_enabled | f_bg_changed;
+    }
+}
+
 static void video_bg_update(void) {
     SDL_LockSurface(s_bg_surface);
     uint32_t tx = 0;
     uint32_t ty = 0;
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
         bg_control_block_t* block = &s_bg_control[i];
-        if ((block->flags & f_bg_changed) == 0
-        ||  (block->flags & f_bg_enabled) == 0)
-            continue;
+
+        if ((block->flags & f_bg_changed) == 0)
+            goto next_tile;
+
+        if ((block->flags & f_bg_enabled) == 0)
+            goto next_tile;
 
         const palette_t* pal = palette(block->palette);
         if (pal == NULL)
-            continue;
+            goto next_tile;
 
         const tile_bitmap_t* bitmap = tile_bitmap(block->tile);
         if (bitmap == NULL)
-            continue;
+            goto next_tile;
 
-        bool horizontal_flip = (block->flags & f_bg_hflip) != 0;
+        bool selected = (block->flags & f_bg_select) != 0;
         bool vertical_flip = (block->flags & f_bg_vflip) != 0;
+        bool horizontal_flip = (block->flags & f_bg_hflip) != 0;
 
         uint8_t sy = (uint8_t) (vertical_flip ? TILE_HEIGHT - 1 : 0);
         int8_t syd = (int8_t) (vertical_flip ? -1 : 1);
@@ -60,11 +72,18 @@ static void video_bg_update(void) {
             uint8_t sx = (uint8_t) (horizontal_flip ? TILE_WIDTH - 1 : 0);
             for (uint32_t x = 0; x < TILE_WIDTH; x++) {
                 const uint32_t pixel_offset = (const uint32_t) (sy * TILE_WIDTH + sx);
-                const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
-                *p++ = pal_entry->red;
-                *p++ = pal_entry->green;
-                *p++ = pal_entry->blue;
-                *p++ = 0xff;
+                if (selected && ((x == 0 || x == TILE_WIDTH - 1) || (y == 0 || y == TILE_HEIGHT - 1))) {
+                    *p++ = 0xff;
+                    *p++ = 0xff;
+                    *p++ = 0xff;
+                    *p++ = 0xff;
+                } else {
+                    const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
+                    *p++ = pal_entry->red;
+                    *p++ = pal_entry->green;
+                    *p++ = pal_entry->blue;
+                    *p++ = 0xff;
+                }
                 sx += sxd;
             }
             sy += syd;
@@ -72,6 +91,7 @@ static void video_bg_update(void) {
 
         block->flags &= ~f_bg_changed;
 
+    next_tile:
         tx += TILE_WIDTH;
         if (tx == SCREEN_WIDTH) {
             tx = 0;
@@ -222,5 +242,6 @@ spr_control_block_t* video_sprite(uint8_t number) {
 }
 
 bg_control_block_t* video_tile(uint8_t y, uint8_t x) {
-    return &s_bg_control[y * TILE_MAP_WIDTH + x];
+    uint32_t index = (uint32_t) (y * TILE_MAP_WIDTH + x);
+    return &s_bg_control[index];
 }

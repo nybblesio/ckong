@@ -35,6 +35,7 @@ typedef enum states {
     state_game,
     state_round_won,
     state_donkey_kong_flees,
+    state_tile_map_editor
 } states_t;
 
 typedef struct state {

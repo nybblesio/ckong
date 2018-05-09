@@ -33,6 +33,7 @@ typedef enum bg_flags {
     f_bg_hflip     = 0b00000010,
     f_bg_vflip     = 0b00000100,
     f_bg_changed   = 0b00001000,
+    f_bg_select    = 0b00010000,
 } bg_flags_t;
 
 typedef struct rect {
@@ -65,6 +66,8 @@ void video_init(void);
 void video_update(void);
 
 void video_shutdown(void);
+
+void video_reset_bg(void);
 
 void video_reset_sprites(void);
 

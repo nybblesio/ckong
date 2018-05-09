@@ -14,8 +14,7 @@
 
 static level_t s_levels[] = {
     {
-        .number = 1,
-        .tile_map = long_introduction
+        .tile_map = tile_map_introduction
     }
 };
 

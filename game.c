@@ -110,9 +110,10 @@ bool game_init(game_context_t* context) {
     context->controller = game_controller_open();
     s_state_context.controller = context->controller;
 
+    tile_map_init();
     video_init();
 
-    state_push(&s_state_context, state_long_introduction);
+    state_push(&s_state_context, state_tile_map_editor);
 
     context->valid = true;
 

@@ -18,7 +18,6 @@
 #include "tile_map.h"
 
 typedef struct level {
-    uint8_t number;
     tile_maps_t tile_map;
 } level_t;
 
