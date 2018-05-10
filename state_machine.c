@@ -20,6 +20,7 @@
 #include "game.h"
 #include "tile.h"
 #include "log.h"
+#include "level.h"
 
 static bool tile_map_editor_enter(state_context_t* context);
 static bool tile_map_editor_update(state_context_t* context);
@@ -183,6 +184,7 @@ static bool long_introduction_enter(state_context_t* context) {
 
     machine_header_update();
     player1_header_update();
+    level_header_update();
 
     return true;
 }

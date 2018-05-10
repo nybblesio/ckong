@@ -30,6 +30,29 @@ typedef struct state_context {
 
 typedef bool (*state_machine_callback_t)(state_context_t*);
 
+//
+// bonus box under level number
+//
+// show "GAME OVER" text on tile map
+//
+// screens:
+//
+//  insert coin + high score table
+//
+//  long introduction
+//
+//  high how (probably all runtime generated)
+//
+//  game screen 1 (climb to pauline)
+//  game screen 2
+//  game screen 3
+//  game screen 4
+//
+//  title screen
+//
+//  name registration
+//
+//
 typedef enum states {
     state_boot,
     state_attract,

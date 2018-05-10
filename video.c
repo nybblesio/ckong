@@ -11,6 +11,7 @@
 // --------------------------------------------------------------------------
 
 #include <assert.h>
+#include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_surface.h>
 #include "log.h"
 #include "tile.h"
@@ -40,17 +41,45 @@ void video_bg_str(
     size_t length = strlen(str);
     for (uint8_t i = 0; i < length; i++) {
         bg_control_block_t* block = video_tile(y, x + i);
-        if (str[i] == 0x20) {
+        uint8_t c = (uint8_t) str[i];
+        if (c == 0x20) {
             block->tile = 0x0a;
             block->palette = 0x0f;
-        } else if (str[i] == '=') {
+        } else if (c == '=') {
             block->tile = 52;
             block->palette = palette;
+        } else if (c > 128) {
+            block->tile = c;
+            block->palette = palette;
         } else {
-            block->tile = (uint16_t) (str[i] - 48);
+            block->tile = (uint16_t) (c - 48);
             block->palette = palette;
         }
         block->flags |= f_bg_changed;
+    }
+}
+
+void video_bg_blink(
+    uint8_t y,
+    uint8_t x,
+    uint8_t h,
+    uint8_t w,
+    uint32_t duration) {
+    uint8_t ty = y;
+    uint8_t tx = x;
+    uint32_t ticks = SDL_GetTicks();
+    for (uint8_t i = 0; i < h; i++) {
+        for (uint8_t j = 0; j < w; j++) {
+            bg_control_block_t* block = video_tile(ty, tx);
+            block->blink_visible = false;
+            block->blink_duration = duration;
+            block->blink_timeout = ticks + duration;
+            if (tx < TILE_MAP_WIDTH)
+                tx++;
+        }
+        tx = x;
+        if (ty < TILE_MAP_HEIGHT)
+            ty++;
     }
 }
 
@@ -58,16 +87,37 @@ void video_reset_bg(void) {
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
         s_bg_control[i].tile = 0;
         s_bg_control[i].palette = 0;
+        s_bg_control[i].blink_timeout = 0;
+        s_bg_control[i].blink_duration = 0;
+        s_bg_control[i].blink_visible = false;
         s_bg_control[i].flags = f_bg_enabled | f_bg_changed;
     }
 }
 
 static void video_bg_update(void) {
     SDL_LockSurface(s_bg_surface);
+
     uint32_t tx = 0;
     uint32_t ty = 0;
+    uint32_t ticks = SDL_GetTicks();
+
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
         bg_control_block_t* block = &s_bg_control[i];
+
+        uint16_t tile_index = block->tile;
+        uint8_t palette_index = block->palette;
+
+        if (block->blink_duration > 0) {
+            if (ticks > block->blink_timeout) {
+                block->flags |= f_bg_changed;
+                block->blink_timeout = ticks + block->blink_duration;
+                block->blink_visible = !block->blink_visible;
+                if (!block->blink_visible) {
+                    tile_index = 0x0a;
+                    palette_index = 0x0f;
+                }
+            }
+        }
 
         if ((block->flags & f_bg_changed) == 0)
             goto next_tile;
@@ -75,11 +125,11 @@ static void video_bg_update(void) {
         if ((block->flags & f_bg_enabled) == 0)
             goto next_tile;
 
-        const palette_t* pal = palette(block->palette);
+        const palette_t* pal = palette(palette_index);
         if (pal == NULL)
             goto next_tile;
 
-        const tile_bitmap_t* bitmap = tile_bitmap(block->tile);
+        const tile_bitmap_t* bitmap = tile_bitmap(tile_index);
         if (bitmap == NULL)
             goto next_tile;
 
@@ -122,7 +172,9 @@ static void video_bg_update(void) {
             ty += TILE_HEIGHT;
         }
     }
+
     SDL_UnlockSurface(s_bg_surface);
+
     SDL_BlitSurface(s_bg_surface, NULL, s_fg_surface, NULL);
 }
 
@@ -255,6 +307,9 @@ void video_set_bg(const tile_map_t* map) {
     assert(map != NULL);
 
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
+        s_bg_control[i].blink_timeout = 0;
+        s_bg_control[i].blink_duration = 0;
+        s_bg_control[i].blink_visible = false;
         s_bg_control[i].tile = map->data[i].tile;
         s_bg_control[i].palette = map->data[i].palette;
         s_bg_control[i].flags = map->data[i].flags | f_bg_enabled | f_bg_changed;

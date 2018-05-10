@@ -35,6 +35,9 @@ player_t* player2(void) {
 }
 
 void player1_header_update(void) {
+    video_bg_str("1UP", 0, 5, 0);
+    video_bg_blink(0, 5, 1, 3, 250);
+
     char buffer[7];
     snprintf(&buffer[0], 7, "%06d", s_player1.score);
     video_bg_str(buffer, 1, 3, 1);
@@ -46,10 +49,9 @@ void player1_header_update(void) {
         block->flags |= f_bg_changed;
     }
 
-    snprintf(&buffer[0], 5, "L=%02d", s_player1.level + 1);
+    snprintf(&buffer[0], 5, "L=%02d", s_player1.level);
     video_bg_str(buffer, 3, 23, 2);
 }
 
 void player2_header_update(void) {
-
 }

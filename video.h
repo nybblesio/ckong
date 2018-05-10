@@ -49,6 +49,9 @@ typedef struct bg_control_block {
     uint8_t palette;
     uint32_t data1;
     uint32_t data2;
+    bool blink_visible;
+    uint32_t blink_timeout;
+    uint32_t blink_duration;
 } bg_control_block_t;
 
 typedef struct spr_control_block {
@@ -66,6 +69,13 @@ void video_bg_str(
     uint8_t y,
     uint8_t x,
     uint8_t palette);
+
+void video_bg_blink(
+    uint8_t y,
+    uint8_t x,
+    uint8_t h,
+    uint8_t w,
+    uint32_t duration);
 
 void video_init(void);
 
