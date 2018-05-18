@@ -60,11 +60,11 @@ void video_bg_str(
 }
 
 void video_bg_blink(
-    uint8_t y,
-    uint8_t x,
-    uint8_t h,
-    uint8_t w,
-    uint32_t duration) {
+        uint8_t y,
+        uint8_t x,
+        uint8_t h,
+        uint8_t w,
+        uint32_t duration) {
     uint8_t ty = y;
     uint8_t tx = x;
     uint32_t ticks = SDL_GetTicks();

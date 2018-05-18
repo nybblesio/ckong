@@ -174,13 +174,37 @@ static bool tile_map_editor_leave(state_context_t* context) {
 // Long Introduction State
 //
 // ----------------------------------------------------------------------------
+static bool bonus_animation_callback(actor_t* actor) {
+    if (actor->data1 > 0) {
+        actor->data1--;
+        return true;
+    }
+    actor->flags &= ~f_actor_enabled;
+    return false;
+}
+
 static bool long_introduction_enter(state_context_t* context) {
     video_set_bg(tile_map(tile_map_introduction));
 
+    actor_t* oil_barrel = actor(actor_oil_barrel);
+    oil_barrel->flags |= f_actor_enabled;
+
+    actor_t* oil_fire = actor(actor_oil_fire);
+    oil_fire->flags |= f_actor_enabled;
+
     actor_t* mario = actor(actor_mario);
-    mario->x = 32;
+    mario->x = 64;
     mario->y = 224;
     mario->data1 = mario_right;
+    mario->flags |= f_actor_enabled;
+
+    actor_t* bonus = actor(actor_bonus);
+    bonus->x = 100;
+    bonus->y = 100;
+    bonus->data1 = 4;
+    bonus->flags |= f_actor_enabled;
+    bonus->animation_callback = bonus_animation_callback;
+    actor_animation(bonus, anim_bonus_100);
 
     machine_header_update();
     player1_header_update();
