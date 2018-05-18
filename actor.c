@@ -24,7 +24,7 @@ static animation_t s_bonus_100_anim = {
                 {
                     .x_offset = 0,
                     .y_offset = 0,
-                    .tile = 95,
+                    .tile = 123,
                     .palette = 1
                 }
             }
@@ -36,7 +36,7 @@ static animation_t s_bonus_100_anim = {
                 {
                     .x_offset = 0,
                     .y_offset = -2,
-                    .tile = 95,
+                    .tile = 123,
                     .palette = 1
                 }
             }
@@ -48,7 +48,7 @@ static animation_t s_bonus_100_anim = {
                 {
                     .x_offset = 0,
                     .y_offset = -4,
-                    .tile = 95,
+                    .tile = 123,
                     .palette = 1
                 }
             }
@@ -60,7 +60,7 @@ static animation_t s_bonus_100_anim = {
                 {
                     .x_offset = 0,
                     .y_offset = -6,
-                    .tile = 95,
+                    .tile = 123,
                     .palette = 1
                 }
             }
@@ -78,7 +78,7 @@ static animation_t s_oil_barrel_anim = {
                 {
                     .x_offset = 0,
                     .y_offset = 0,
-                    .tile = 72,
+                    .tile = 73,
                     .palette = 12
                 }
             }
@@ -132,9 +132,8 @@ static animation_t s_oil_fire_anim = {
                 {
                     .x_offset = 0,
                     .y_offset = 0,
-                    .tile = 64,
+                    .tile = 67,
                     .palette = 1,
-                    .flags = f_spr_hflip
                 }
             }
         },
