@@ -27,6 +27,9 @@ static SDL_Surface* s_bg_surface;
 
 static SDL_Surface* s_fg_surface;
 
+static bg_blinker_t s_blinkers[BLINKERS_MAX];
+static uint32_t s_current_blinker = 0;
+
 static spr_control_block_t s_spr_control[SPRITE_MAX];
 
 static bg_control_block_t s_bg_control[TILE_MAP_SIZE];
@@ -35,7 +38,8 @@ void video_bg_str(
         const char* str,
         uint8_t y,
         uint8_t x,
-        uint8_t palette) {
+        uint8_t palette,
+        bool enabled) {
     assert(str != NULL);
 
     size_t length = strlen(str);
@@ -55,51 +59,95 @@ void video_bg_str(
             block->tile = (uint16_t) (c - 48);
             block->palette = palette;
         }
+        if (!enabled)
+            block->flags &= ~f_bg_enabled;
         block->flags |= f_bg_changed;
     }
 }
 
-void video_bg_blink(
+bg_blinker_t* video_bg_blink(
         uint8_t y,
         uint8_t x,
         uint8_t h,
         uint8_t w,
-        uint32_t duration) {
-    uint8_t ty = y;
-    uint8_t tx = x;
+        uint32_t duration,
+        bg_blinker_callback callback) {
+    assert(s_current_blinker < BLINKERS_MAX);
+
+    bg_blinker_t* blinker = &s_blinkers[s_current_blinker++];
+
     uint32_t ticks = SDL_GetTicks();
-    for (uint8_t i = 0; i < h; i++) {
-        for (uint8_t j = 0; j < w; j++) {
-            bg_control_block_t* block = video_tile(ty, tx);
-            block->blink_visible = false;
-            block->blink_duration = duration;
-            block->blink_timeout = ticks + duration;
-            if (tx < TILE_MAP_WIDTH)
-                tx++;
-        }
-        tx = x;
-        if (ty < TILE_MAP_HEIGHT)
-            ty++;
-    }
+    rect_t bounds = {
+        .left = x,
+        .top = y,
+        .width = w,
+        .height = h
+    };
+    blinker->bounds = bounds;
+    blinker->visible = false;
+    blinker->duration = duration;
+    blinker->callback = callback;
+    blinker->timeout = ticks + duration;
+
+    return blinker;
 }
 
 void video_reset_bg(void) {
+    s_current_blinker = 0;
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
         s_bg_control[i].tile = 0;
         s_bg_control[i].palette = 0;
-        s_bg_control[i].blink_timeout = 0;
-        s_bg_control[i].blink_duration = 0;
-        s_bg_control[i].blink_visible = false;
         s_bg_control[i].flags = f_bg_enabled | f_bg_changed;
     }
 }
 
 static void video_bg_update(void) {
-    SDL_LockSurface(s_bg_surface);
+    uint32_t ticks = SDL_GetTicks();
+
+    for (uint32_t i = 0; i < s_current_blinker; i++) {
+        bg_blinker_t* blinker = &s_blinkers[i];
+        if (blinker->duration > 0) {
+            if (ticks > blinker->timeout) {
+                bool blinker_result = true;
+
+                if (blinker->callback != NULL) {
+                    blinker_result = blinker->callback(blinker);
+                }
+
+                if (blinker_result) {
+                    blinker->timeout = ticks + blinker->duration;
+                }
+
+                int32_t ty = blinker->bounds.top;
+                int32_t tx = blinker->bounds.left;
+                for (uint8_t y = 0; y < blinker->bounds.height; y++) {
+                    for (uint8_t x = 0; x < blinker->bounds.width; x++) {
+                        bg_control_block_t* block = video_tile(
+                            (uint8_t) ty,
+                            (uint8_t) tx);
+                        if (!blinker->visible) {
+                            block->flags &= ~f_bg_enabled;
+                        } else {
+                            block->flags |= f_bg_enabled;
+                        }
+                        block->flags |= f_bg_changed;
+
+                        if (tx < TILE_MAP_WIDTH)
+                            tx++;
+                    }
+                    tx = blinker->bounds.left;
+                    if (ty < TILE_MAP_HEIGHT)
+                        ty++;
+                }
+
+                blinker->visible = !blinker->visible;
+            }
+        }
+    }
 
     uint32_t tx = 0;
     uint32_t ty = 0;
-    uint32_t ticks = SDL_GetTicks();
+    SDL_LockSurface(s_bg_surface);
 
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
         bg_control_block_t* block = &s_bg_control[i];
@@ -107,23 +155,13 @@ static void video_bg_update(void) {
         uint16_t tile_index = block->tile;
         uint8_t palette_index = block->palette;
 
-        if (block->blink_duration > 0) {
-            if (ticks > block->blink_timeout) {
-                block->flags |= f_bg_changed;
-                block->blink_timeout = ticks + block->blink_duration;
-                block->blink_visible = !block->blink_visible;
-                if (!block->blink_visible) {
-                    tile_index = 0x0a;
-                    palette_index = 0x0f;
-                }
-            }
-        }
-
         if ((block->flags & f_bg_changed) == 0)
             goto next_tile;
 
-        if ((block->flags & f_bg_enabled) == 0)
-            goto next_tile;
+        if ((block->flags & f_bg_enabled) == 0) {
+            tile_index = 0x0a;
+            palette_index = 0x0f;
+        }
 
         const palette_t* pal = palette(palette_index);
         if (pal == NULL)
@@ -307,9 +345,6 @@ void video_set_bg(const tile_map_t* map) {
     assert(map != NULL);
 
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
-        s_bg_control[i].blink_timeout = 0;
-        s_bg_control[i].blink_duration = 0;
-        s_bg_control[i].blink_visible = false;
         s_bg_control[i].tile = map->data[i].tile;
         s_bg_control[i].palette = map->data[i].palette;
         s_bg_control[i].flags = map->data[i].flags | f_bg_enabled | f_bg_changed;

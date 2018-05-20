@@ -20,6 +20,7 @@ typedef enum actors {
     actor_oil_barrel,
     actor_oil_fire,
     actor_bonus,
+    actor_pauline,
 } actors_t;
 
 typedef enum animations {
@@ -42,7 +43,8 @@ typedef enum animations {
     anim_mario_die,
     anim_pauline_stand_right,
     anim_pauline_stand_left,
-    anim_pauline_shuffle,
+    anim_pauline_shuffle_right,
+    anim_pauline_shuffle_left,
     anim_barrel_roll_right,
     anim_barrel_roll_left,
     anim_barrel_roll_down,

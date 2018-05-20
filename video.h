@@ -16,6 +16,8 @@
 #include <stdbool.h>
 #include "tile_map.h"
 
+#define BLINKERS_MAX (16)
+
 struct SDL_Surface;
 
 typedef enum spr_flags {
@@ -43,15 +45,25 @@ typedef struct rect {
     int16_t height;
 } rect_t;
 
+typedef struct bg_blinker bg_blinker_t;
+typedef bool (*bg_blinker_callback)(bg_blinker_t*);
+
+typedef struct bg_blinker {
+    rect_t bounds;
+    bool visible;
+    uint32_t timeout;
+    uint32_t duration;
+    uint32_t data1;
+    uint32_t data2;
+    bg_blinker_callback callback;
+} bg_blinker_t;
+
 typedef struct bg_control_block {
     uint16_t tile;
     uint8_t flags;
     uint8_t palette;
     uint32_t data1;
     uint32_t data2;
-    bool blink_visible;
-    uint32_t blink_timeout;
-    uint32_t blink_duration;
 } bg_control_block_t;
 
 typedef struct spr_control_block {
@@ -68,14 +80,16 @@ void video_bg_str(
     const char* str,
     uint8_t y,
     uint8_t x,
-    uint8_t palette);
+    uint8_t palette,
+    bool enabled);
 
-void video_bg_blink(
+bg_blinker_t* video_bg_blink(
     uint8_t y,
     uint8_t x,
     uint8_t h,
     uint8_t w,
-    uint32_t duration);
+    uint32_t duration,
+    bg_blinker_callback callback);
 
 void video_init(void);
 

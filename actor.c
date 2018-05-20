@@ -34,7 +34,7 @@ static animation_t s_bonus_100_anim = {
             .tile_count = 1,
             .tiles = {
                 {
-                    .x_offset = 0,
+                    .x_offset = -2,
                     .y_offset = -2,
                     .tile = 123,
                     .palette = 1
@@ -58,9 +58,225 @@ static animation_t s_bonus_100_anim = {
             .tile_count = 1,
             .tiles = {
                 {
-                    .x_offset = 0,
+                    .x_offset = 2,
                     .y_offset = -6,
                     .tile = 123,
+                    .palette = 1
+                }
+            }
+        },
+    }
+};
+
+static animation_t s_bonus_200_anim = {
+    .frame_count = 4,
+    .frames = {
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 124,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = -2,
+                    .y_offset = -2,
+                    .tile = 124,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -4,
+                    .tile = 124,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 2,
+                    .y_offset = -6,
+                    .tile = 124,
+                    .palette = 1
+                }
+            }
+        },
+    }
+};
+
+static animation_t s_bonus_300_anim = {
+    .frame_count = 4,
+    .frames = {
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 125,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = -2,
+                    .y_offset = -2,
+                    .tile = 125,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -4,
+                    .tile = 125,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 2,
+                    .y_offset = -6,
+                    .tile = 125,
+                    .palette = 1
+                }
+            }
+        },
+    }
+};
+
+static animation_t s_bonus_500_anim = {
+    .frame_count = 4,
+    .frames = {
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 126,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = -2,
+                    .y_offset = -2,
+                    .tile = 126,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -4,
+                    .tile = 126,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 2,
+                    .y_offset = -6,
+                    .tile = 126,
+                    .palette = 1
+                }
+            }
+        },
+    }
+};
+
+static animation_t s_bonus_800_anim = {
+    .frame_count = 4,
+    .frames = {
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 127,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = -2,
+                    .y_offset = -2,
+                    .tile = 127,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -4,
+                    .tile = 127,
+                    .palette = 1
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 2,
+                    .y_offset = -6,
+                    .tile = 127,
                     .palette = 1
                 }
             }
@@ -134,6 +350,144 @@ static animation_t s_oil_fire_anim = {
                     .y_offset = 0,
                     .tile = 67,
                     .palette = 1,
+                }
+            }
+        },
+    }
+};
+
+static animation_t s_pauline_stand_right = {
+    .frame_count = 1,
+    .frames = {
+        {
+            .delay = 0,
+            .tile_count = 2,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -16,
+                    .tile = 16,
+                    .palette = 9,
+                },
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 17,
+                    .palette = 10,
+                }
+            }
+        },
+    }
+};
+
+static animation_t s_pauline_shuffle_right = {
+    .frame_count = 2,
+    .frames = {
+        {
+            .delay = 133,
+            .tile_count = 2,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -16,
+                    .tile = 16,
+                    .palette = 9,
+                },
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 17,
+                    .palette = 10,
+                }
+            }
+        },
+        {
+            .delay = 133,
+            .tile_count = 2,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -16,
+                    .tile = 16,
+                    .palette = 9,
+                },
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 18,
+                    .palette = 10,
+                }
+            }
+        },
+    }
+};
+
+static animation_t s_pauline_shuffle_left = {
+    .frame_count = 2,
+    .frames = {
+        {
+            .delay = 133,
+            .tile_count = 2,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -16,
+                    .tile = 16,
+                    .palette = 9,
+                    .flags = f_spr_hflip
+                },
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 17,
+                    .palette = 10,
+                    .flags = f_spr_hflip
+                }
+            }
+        },
+        {
+            .delay = 133,
+            .tile_count = 2,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -16,
+                    .tile = 16,
+                    .palette = 9,
+                    .flags = f_spr_hflip
+                },
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 18,
+                    .palette = 10,
+                    .flags = f_spr_hflip
+                }
+            }
+        },
+    }
+};
+
+static animation_t s_pauline_stand_left = {
+    .frame_count = 1,
+    .frames = {
+        {
+            .delay = 0,
+            .tile_count = 2,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = -16,
+                    .tile = 16,
+                    .palette = 9,
+                    .flags = f_spr_hflip
+                },
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 17,
+                    .palette = 10,
+                    .flags = f_spr_hflip
                 }
             }
         },
@@ -312,6 +666,17 @@ static actor_t s_mario_actor = {
     .animation_callback = NULL
 };
 
+static actor_t s_pauline_actor = {
+    .x = 0,
+    .y = 0,
+    .frame = 0,
+    .next_tick = 0,
+    .animation = NULL,
+    .flags = f_actor_none,
+    .animation_type = anim_none,
+    .animation_callback = NULL
+};
+
 static actor_t s_bonus_actor = {
     .x = 0,
     .y = 0,
@@ -350,6 +715,7 @@ static actor_t* s_actors[] = {
     &s_oil_barrel_actor,
     &s_oil_fire_actor,
     &s_bonus_actor,
+    &s_pauline_actor,
     NULL
 };
 
@@ -406,6 +772,8 @@ actor_t* actor(actors_t actor) {
     switch (actor) {
         case actor_mario:
             return &s_mario_actor;
+        case actor_pauline:
+            return &s_pauline_actor;
         case actor_oil_barrel:
             return &s_oil_barrel_actor;
         case actor_oil_fire:
@@ -449,16 +817,16 @@ void actor_animation(actor_t* actor, animations_t animation) {
             actor->animation = &s_bonus_100_anim;
             break;
         case anim_bonus_200:
-            actor->animation = NULL;
+            actor->animation = &s_bonus_200_anim;
             break;
         case anim_bonus_300:
-            actor->animation = NULL;
+            actor->animation = &s_bonus_300_anim;
             break;
         case anim_bonus_500:
-            actor->animation = NULL;
+            actor->animation = &s_bonus_500_anim;
             break;
         case anim_bonus_800:
-            actor->animation = NULL;
+            actor->animation = &s_bonus_800_anim;
             break;
         case anim_mario_climb:
             actor->animation = NULL;
@@ -476,13 +844,16 @@ void actor_animation(actor_t* actor, animations_t animation) {
             actor->animation = NULL;
             break;
         case anim_pauline_stand_right:
-            actor->animation = NULL;
+            actor->animation = &s_pauline_stand_right;
             break;
         case anim_pauline_stand_left:
-            actor->animation = NULL;
+            actor->animation = &s_pauline_stand_left;
             break;
-        case anim_pauline_shuffle:
-            actor->animation = NULL;
+        case anim_pauline_shuffle_right:
+            actor->animation = &s_pauline_shuffle_right;
+            break;
+        case anim_pauline_shuffle_left:
+            actor->animation = &s_pauline_shuffle_left;
             break;
         case anim_barrel_roll_right:
             actor->animation = NULL;

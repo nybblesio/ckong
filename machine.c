@@ -34,8 +34,8 @@ void machine_save_config(void) {
 }
 
 void machine_header_update(void) {
-    video_bg_str("HIGH SCORE", 0, 11, 0);
+    video_bg_str("HIGH SCORE", 0, 11, 0, true);
     char buffer[7];
     snprintf(&buffer[0], 7, "%06d", s_machine.high_score);
-    video_bg_str(buffer, 1, 13, 1);
+    video_bg_str(buffer, 1, 13, 1, true);
 }

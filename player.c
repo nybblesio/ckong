@@ -35,12 +35,12 @@ player_t* player2(void) {
 }
 
 void player1_header_update(void) {
-    video_bg_str("1UP", 0, 5, 0);
-    video_bg_blink(0, 5, 1, 3, 250);
+    video_bg_str("1UP", 0, 5, 0, false);
+    video_bg_blink(0, 5, 1, 3, 250, NULL);
 
     char buffer[7];
     snprintf(&buffer[0], 7, "%06d", s_player1.score);
-    video_bg_str(buffer, 1, 3, 1);
+    video_bg_str(buffer, 1, 3, 1, true);
 
     for (uint8_t i = 0; i < s_player1.lives; i++) {
         bg_control_block_t* block = video_tile(3, (uint8_t) (3 + i));
@@ -50,7 +50,7 @@ void player1_header_update(void) {
     }
 
     snprintf(&buffer[0], 5, "L=%02d", s_player1.level);
-    video_bg_str(buffer, 3, 23, 2);
+    video_bg_str(buffer, 3, 23, 2, true);
 }
 
 void player2_header_update(void) {

@@ -206,6 +206,12 @@ static bool long_introduction_enter(state_context_t* context) {
     bonus->animation_callback = bonus_animation_callback;
     actor_animation(bonus, anim_bonus_100);
 
+    actor_t* pauline = actor(actor_pauline);
+    pauline->x = 104;
+    pauline->y = 43;
+    actor_animation(pauline, anim_pauline_stand_right);
+    pauline->flags |= f_actor_enabled;
+
     machine_header_update();
     player1_header_update();
     level_header_update();
