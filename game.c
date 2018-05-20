@@ -12,21 +12,20 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "str.h"
 #include "log.h"
 #include "game.h"
 #include "actor.h"
 #include "video.h"
 #include "window.h"
+#include "player.h"
+#include "machine.h"
 #include "state_machine.h"
-
-static player_t s_player1 = {
-    .lives = 3,
-    .level = 0,
-    .score = 0,
-};
+#include "game_controller.h"
 
 static state_context_t s_state_context = {
-    .player = &s_player1,
+    .player = NULL,
+    .machine = NULL,
     .level = NULL,
     .controller = NULL
 };
@@ -107,10 +106,15 @@ bool game_init(game_context_t* context) {
         return false;
     }
 
+    machine_init();
+    tile_map_init();
+    tile_map_load();
+    video_init();
+
     context->controller = game_controller_open();
     s_state_context.controller = context->controller;
-
-    video_init();
+    s_state_context.machine = machine();
+    s_state_context.player = player1();
 
     state_push(&s_state_context, state_long_introduction);
 

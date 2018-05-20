@@ -15,18 +15,44 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "level.h"
-#include "player.h"
-#include "game_controller.h"
+
+typedef struct level level_t;
+typedef struct player player_t;
+typedef struct machine machine_t;
+typedef struct game_controller game_controller_t;
 
 typedef struct state_context {
     level_t* level;
     player_t* player;
+    machine_t* machine;
     game_controller_t* controller;
 } state_context_t;
 
 typedef bool (*state_machine_callback_t)(state_context_t*);
 
+//
+// bonus box under level number
+//
+// show "GAME OVER" text on tile map
+//
+// screens:
+//
+//  insert coin + high score table
+//
+//  long introduction
+//
+//  high how (probably all runtime generated)
+//
+//  game screen 1 (climb to pauline)
+//  game screen 2
+//  game screen 3
+//  game screen 4
+//
+//  title screen
+//
+//  name registration
+//
+//
 typedef enum states {
     state_boot,
     state_attract,
@@ -35,6 +61,7 @@ typedef enum states {
     state_game,
     state_round_won,
     state_donkey_kong_flees,
+    state_tile_map_editor
 } states_t;
 
 typedef struct state {

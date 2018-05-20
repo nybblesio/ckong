@@ -2,8 +2,17 @@ cmake_minimum_required(VERSION 3.11)
 project(ckong C)
 
 set(CMAKE_C_STANDARD 11)
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
+
+if ("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+    set(CMAKE_C_FLAGS "-Wall" CACHE STRING "compile flags" FORCE)
+    message(STATUS "Using clang flags: ${CMAKE_C_FLAGS}")
+elseif ("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+    set(CMAKE_C_FLAGS "-Wall" CACHE STRING "compile flags" FORCE)
+    message(STATUS "Using gcc flags: ${CMAKE_C_FLAGS}")
+else ()
+    message(STATUS "Unknown compiler; no custom flags set: ${CMAKE_C_COMPILER_ID}")
+endif()
 
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
@@ -29,6 +38,7 @@ add_executable(
         sprite.c sprite.h
         window.c window.h
         palette.c palette.h
+        machine.c machine.h
         tile_map.c tile_map.h
         linked_list.c linked_list.h
         state_machine.c state_machine.h

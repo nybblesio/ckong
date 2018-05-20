@@ -54,8 +54,10 @@ bool game_controller_button(
             case button_right_shoulder:
                 break;
             case button_dpad_up:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_UP];
                 break;
             case button_dpad_down:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_DOWN];
                 break;
             case button_dpad_left:
                 button_pressed = s_keyboard_state[SDL_SCANCODE_LEFT];

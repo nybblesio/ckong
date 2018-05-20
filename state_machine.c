@@ -10,14 +10,32 @@
 //
 // --------------------------------------------------------------------------
 
+#include "game_controller.h"
 #include "state_machine.h"
+#include "palette.h"
+#include "machine.h"
+#include "player.h"
 #include "actor.h"
-#include "game.h"
 #include "video.h"
+#include "game.h"
+#include "tile.h"
+#include "log.h"
+#include "level.h"
+
+static bool tile_map_editor_enter(state_context_t* context);
+static bool tile_map_editor_update(state_context_t* context);
+static bool tile_map_editor_leave(state_context_t* context);
 
 static bool long_introduction_enter(state_context_t* context);
 static bool long_introduction_update(state_context_t* context);
 static bool long_introduction_leave(state_context_t* context);
+
+static state_t s_tile_map_editor = {
+    .state = state_tile_map_editor,
+    .enter = tile_map_editor_enter,
+    .update = tile_map_editor_update,
+    .leave = tile_map_editor_leave
+};
 
 static state_t s_long_introduction = {
     .state = state_long_introduction,
@@ -32,16 +50,171 @@ static uint8_t s_stack_index = 32;
 
 // ----------------------------------------------------------------------------
 //
+// Tile Map Editor State
+//
+// ----------------------------------------------------------------------------
+typedef struct tile_editor_state {
+    uint8_t index;
+    uint8_t x;
+    uint8_t y;
+} tile_editor_state_t;
+
+static tile_editor_state_t s_tile_editor;
+
+static void tile_map_select(bool flag) {
+    bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
+    if (!flag)
+        block->flags &= ~f_bg_select;
+    else
+        block->flags |= f_bg_select;
+    block->flags |= f_bg_changed;
+}
+
+static bool tile_map_editor_enter(state_context_t* context) {
+    s_tile_editor.index = 0;
+    s_tile_editor.x = 0;
+    s_tile_editor.y = 0;
+    log_message(category_app, "tile map index: %d", s_tile_editor.index);
+    video_set_bg(tile_map_index(s_tile_editor.index));
+    tile_map_select(true);
+    return true;
+}
+
+static bool tile_map_editor_update(state_context_t* context) {
+    if (game_controller_button(context->controller, button_left_shoulder)) {
+        if (s_tile_editor.index > 0) {
+            s_tile_editor.index--;
+            video_set_bg(tile_map_index(s_tile_editor.index));
+            tile_map_select(true);
+        }
+    }
+
+    if (game_controller_button(context->controller, button_right_shoulder)) {
+        if (s_tile_editor.index < TILE_MAP_MAX - 1) {
+            s_tile_editor.index++;
+            video_set_bg(tile_map_index(s_tile_editor.index));
+            tile_map_select(true);
+        }
+    }
+
+    if (game_controller_button(context->controller, button_a)) {
+        bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
+        if (block->palette > 0) {
+            block->palette--;
+            block->flags |= f_bg_changed;
+        }
+    }
+
+    if (game_controller_button(context->controller, button_b)) {
+        bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
+        if (block->palette < PALETTE_MAX) {
+            block->palette++;
+            block->flags |= f_bg_changed;
+        }
+    }
+
+    if (game_controller_button(context->controller, button_x)) {
+        bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
+        if (block->tile > 0) {
+            block->tile--;
+            block->flags |= f_bg_changed;
+        }
+    }
+
+    if (game_controller_button(context->controller, button_y)) {
+        bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
+        if (block->tile < TILE_MAX) {
+            block->tile++;
+            block->flags |= f_bg_changed;
+        }
+    }
+
+    if (game_controller_button(context->controller, button_dpad_up)) {
+        if (s_tile_editor.y > 0) {
+            tile_map_select(false);
+            s_tile_editor.y--;
+            tile_map_select(true);
+        }
+    }
+
+    if (game_controller_button(context->controller, button_dpad_down)) {
+        if (s_tile_editor.y < TILE_MAP_HEIGHT - 1) {
+            tile_map_select(false);
+            s_tile_editor.y++;
+            tile_map_select(true);
+        }
+    }
+
+    if (game_controller_button(context->controller, button_dpad_left)) {
+        if (s_tile_editor.x > 0) {
+            tile_map_select(false);
+            s_tile_editor.x--;
+            tile_map_select(true);
+        }
+    }
+
+    if (game_controller_button(context->controller, button_dpad_right)) {
+        if (s_tile_editor.x < TILE_MAP_WIDTH - 1) {
+            tile_map_select(false);
+            s_tile_editor.x++;
+            tile_map_select(true);
+        }
+    }
+
+    return true;
+}
+
+static bool tile_map_editor_leave(state_context_t* context) {
+    tile_map_save();
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+//
 // Long Introduction State
 //
 // ----------------------------------------------------------------------------
+static bool bonus_animation_callback(actor_t* actor) {
+    if (actor->data1 > 0) {
+        actor->data1--;
+        return true;
+    }
+    actor->flags &= ~f_actor_enabled;
+    return false;
+}
+
 static bool long_introduction_enter(state_context_t* context) {
-    video_set_bg(tile_map(long_introduction));
+    video_set_bg(tile_map(tile_map_introduction));
+
+    actor_t* oil_barrel = actor(actor_oil_barrel);
+    oil_barrel->flags |= f_actor_enabled;
+
+    actor_t* oil_fire = actor(actor_oil_fire);
+    oil_fire->flags |= f_actor_enabled;
 
     actor_t* mario = actor(actor_mario);
-    mario->x = 32;
+    mario->x = 64;
     mario->y = 224;
     mario->data1 = mario_right;
+    mario->flags |= f_actor_enabled;
+
+    actor_t* bonus = actor(actor_bonus);
+    bonus->x = 100;
+    bonus->y = 100;
+    bonus->data1 = 4;
+    bonus->flags |= f_actor_enabled;
+    bonus->animation_callback = bonus_animation_callback;
+    actor_animation(bonus, anim_bonus_100);
+
+    actor_t* pauline = actor(actor_pauline);
+    pauline->x = 104;
+    pauline->y = 43;
+    actor_animation(pauline, anim_pauline_stand_right);
+    pauline->flags |= f_actor_enabled;
+
+    machine_header_update();
+    player1_header_update();
+    level_header_update();
 
     return true;
 }
@@ -66,10 +239,20 @@ static bool long_introduction_update(state_context_t* context) {
     }
 
     if (game_controller_button(context->controller, button_a)
-        &&  (mario->data1 & mario_jump) == 0) {
+    &&  (mario->data1 & mario_jump) == 0) {
         mario->data1 |= mario_jump;
         mario->data2 = 20;
     }
+
+    // XXX: temporary test code
+    if (game_controller_button(context->controller, button_dpad_up)) {
+        mario->y -= 2;
+    }
+
+    if (game_controller_button(context->controller, button_dpad_down)) {
+        mario->y += 2;
+    }
+    // XXX: temporary test code
 
     int8_t dir = 1;
     if ((mario->data1 & mario_left) != 0) {
@@ -147,6 +330,12 @@ void state_push(state_context_t* context, states_t state) {
         case state_round_won:
             break;
         case state_donkey_kong_flees:
+            break;
+        case state_tile_map_editor:
+            state_ptr = &s_tile_map_editor;
+            break;
+        default:
+            log_error(category_app, "unknown state");
             break;
     }
 
