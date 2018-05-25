@@ -82,7 +82,7 @@ str_t* str_right(const str_t* lhs, uint16_t len) {
     str_t* str = str_new(len);
     memcpy(
         str->data,
-        (lhs->data + (lhs->len - 1)) - len,
+        (lhs->data + lhs->len) - len,
         len);
     str->pos = len;
     return str;
