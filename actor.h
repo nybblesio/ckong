@@ -21,6 +21,7 @@ typedef enum actors {
     actor_oil_fire,
     actor_bonus,
     actor_pauline,
+    actor_donkey_kong,
 } actors_t;
 
 typedef enum animations {

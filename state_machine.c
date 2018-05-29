@@ -212,6 +212,12 @@ static bool long_introduction_enter(state_context_t* context) {
     actor_animation(pauline, anim_pauline_stand_right);
     pauline->flags |= f_actor_enabled;
 
+    actor_t* donkey_kong = actor(actor_donkey_kong);
+    donkey_kong->x = 124;
+    donkey_kong->y = 176;
+    actor_animation(donkey_kong, anim_donkey_kong_climb_ladder);
+    donkey_kong->flags |= f_actor_enabled;
+
     machine_header_update();
     player1_header_update();
     level_header_update();
