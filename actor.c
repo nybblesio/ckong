@@ -655,6 +655,79 @@ static animation_t s_mario_walk_right = {
     }
 };
 
+static animation_t s_mario_climb = {
+    .frame_count = 2,
+    .frames = {
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 3,
+                    .palette = 2,
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 3,
+                    .palette = 2,
+                    .flags = f_spr_hflip
+                }
+            }
+        },
+    }
+};
+
+static animation_t s_mario_climb_end = {
+    .frame_count = 3,
+    .frames = {
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 4,
+                    .palette = 2,
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 5,
+                    .palette = 2,
+                }
+            }
+        },
+        {
+            .delay = 100,
+            .tile_count = 1,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 6,
+                    .palette = 2,
+                }
+            }
+        },
+    }
+};
+
 static actor_t s_mario_actor = {
     .x = 0,
     .y = 0,
@@ -829,10 +902,10 @@ void actor_animation(actor_t* actor, animations_t animation) {
             actor->animation = &s_bonus_800_anim;
             break;
         case anim_mario_climb:
-            actor->animation = NULL;
+            actor->animation = &s_mario_climb;
             break;
         case anim_mario_climb_end:
-            actor->animation = NULL;
+            actor->animation = &s_mario_climb_end;
             break;
         case anim_mario_hammer_walk_left:
             actor->animation = NULL;

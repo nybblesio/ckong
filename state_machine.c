@@ -194,7 +194,7 @@ static bool long_introduction_enter(state_context_t* context) {
 
     actor_t* mario = actor(actor_mario);
     mario->x = 64;
-    mario->y = 224;
+    mario->y = 191;
     mario->data1 = mario_right;
     mario->flags |= f_actor_enabled;
 
@@ -222,18 +222,41 @@ static bool long_introduction_enter(state_context_t* context) {
 static bool long_introduction_update(state_context_t* context) {
     actor_t* mario = actor(actor_mario);
 
-    if (game_controller_button(context->controller, button_dpad_right)) {
+    bool is_climbing = (mario->data1 & mario_climb) != 0
+        || (mario->data1 & mario_climb_end) != 0;
+
+    if (game_controller_button(context->controller, button_dpad_right)
+    &&  !is_climbing) {
         if (mario->x < 224)
             mario->x += 2;
         mario->data1 &= ~mario_left;
         mario->data1 |= mario_right | mario_run;
         actor_animation(mario, anim_mario_walk_right);
-    } else if (game_controller_button(context->controller, button_dpad_left)) {
+    } else if (game_controller_button(context->controller, button_dpad_left)
+            && !is_climbing) {
         if (mario->x > 16)
             mario->x -= 2;
         mario->data1 &= ~mario_right;
         mario->data1 |= mario_left | mario_run;
         actor_animation(mario, anim_mario_walk_left);
+    } else if (game_controller_button(context->controller, button_dpad_up)) {
+        // is mario over a ladder?
+        //
+        // first, we compute mario's position within the background tile map
+        uint8_t tx = (uint8_t) ((mario->x + 8) / 8);
+        uint8_t ty = (uint8_t) ((mario->y + 8) / 8);
+
+        // grab the block
+        bg_control_block_t* block = video_tile(ty, tx);
+
+        log_message(category_app, "block = %d", block->tile);
+
+        // is it a ladder piece?
+        if (block->tile == 0xc0) {
+            mario->x = (int16_t) (tx * 8 - 4);
+            mario->y -= 2;
+            mario->data1 |= mario_climb;
+        }
     } else {
         mario->data1 &= ~mario_run;
     }
@@ -243,16 +266,6 @@ static bool long_introduction_update(state_context_t* context) {
         mario->data1 |= mario_jump;
         mario->data2 = 20;
     }
-
-    // XXX: temporary test code
-    if (game_controller_button(context->controller, button_dpad_up)) {
-        mario->y -= 2;
-    }
-
-    if (game_controller_button(context->controller, button_dpad_down)) {
-        mario->y += 2;
-    }
-    // XXX: temporary test code
 
     int8_t dir = 1;
     if ((mario->data1 & mario_left) != 0) {
@@ -274,6 +287,8 @@ static bool long_introduction_update(state_context_t* context) {
                 mario,
                 dir == 2 ? anim_mario_jump_right : anim_mario_jump_left);
         }
+    } else if (is_climbing) {
+        actor_animation(mario, anim_mario_climb);
     } else if ((mario->data1 & mario_run) == 0) {
         actor_animation(
             mario,
