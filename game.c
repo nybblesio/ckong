@@ -10,8 +10,7 @@
 //
 // --------------------------------------------------------------------------
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <SDL.h>
 #include "str.h"
 #include "log.h"
 #include "game.h"
@@ -94,12 +93,6 @@ bool game_init(game_context_t* context) {
         return false;
     }
 
-    log_message(category_app, "IMG_Init for IMG_INIT_PNG.");
-    if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) == 0) {
-        context->messages->data = str_clone("SDL_image failed to initialize");
-        return false;
-    }
-
     log_message(category_app, "Create application window.");
     context->window = window_create();
     if (!context->window.valid) {
@@ -126,9 +119,6 @@ bool game_init(game_context_t* context) {
 void game_shutdown(game_context_t* context) {
     log_message(category_app, "pop last state from stack.");
     state_pop(&s_state_context);
-
-    log_message(category_app, "IMG_Quit.");
-    IMG_Quit();
 
     if (context == NULL)
         return;

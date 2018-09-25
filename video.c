@@ -11,8 +11,8 @@
 // --------------------------------------------------------------------------
 
 #include <assert.h>
-#include <SDL2/SDL_timer.h>
-#include <SDL2/SDL_surface.h>
+#include <SDL_timer.h>
+#include <SDL_surface.h>
 #include "log.h"
 #include "tile.h"
 #include "video.h"

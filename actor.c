@@ -10,7 +10,7 @@
 //
 // --------------------------------------------------------------------------
 
-#include <SDL2/SDL_timer.h>
+#include <SDL_timer.h>
 #include "actor.h"
 #include "video.h"
 

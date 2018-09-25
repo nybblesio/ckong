@@ -11,8 +11,8 @@
 // --------------------------------------------------------------------------
 
 #include <assert.h>
-#include <SDL2/SDL_system.h>
-#include <SDL2/SDL_gamecontroller.h>
+#include <SDL_system.h>
+#include <SDL_gamecontroller.h>
 #include "game_controller.h"
 
 static const Uint8* s_keyboard_state;

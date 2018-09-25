@@ -10,7 +10,7 @@
 //
 // --------------------------------------------------------------------------
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "window.h"
 #include "str.h"
 #include "log.h"

@@ -11,7 +11,7 @@
 // --------------------------------------------------------------------------
 
 #include <stdarg.h>
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 #include "log.h"
 
 void log_init(void) {
