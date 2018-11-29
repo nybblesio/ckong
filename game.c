@@ -60,7 +60,13 @@ game_context_t* game_context_new() {
 bool game_run(game_context_t* context) {
     SDL_Surface* vg_surface = video_surface();
 
+    uint16_t frame_count = 0;
+    uint32_t last_time = SDL_GetTicks();
+    uint32_t last_fps_time = last_time;
+
     while (!should_quit()) {
+        uint32_t frame_start_ticks = SDL_GetTicks();
+
         state_update(&s_state_context);
 
         actor_update();
@@ -80,6 +86,23 @@ bool game_run(game_context_t* context) {
             NULL);
 
         SDL_RenderPresent(context->window.renderer);
+        uint32_t frame_duration = SDL_GetTicks() - frame_start_ticks;
+
+        uint32_t fps_dt = last_time - last_fps_time;
+        if (fps_dt >= 1000) {
+            log_message(category_app, "FPS: %d", frame_count);
+
+            frame_count = 0;
+            last_fps_time = last_time;
+        }
+
+        ++frame_count;
+
+        if (frame_duration < MS_PER_FRAME) {
+            SDL_Delay(MS_PER_FRAME - frame_duration);
+        }
+
+        last_time = SDL_GetTicks();
     }
 
     return true;

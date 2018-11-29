@@ -17,6 +17,8 @@
 #include "tile_map.h"
 
 #define BLINKERS_MAX (16)
+#define FRAME_RATE (60)
+#define MS_PER_FRAME (1000 / FRAME_RATE)
 
 struct SDL_Surface;
 

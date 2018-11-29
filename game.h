@@ -16,14 +16,14 @@
 #include "window.h"
 
 typedef enum mario_flags {
-    mario_none      = 0b00000000,
-    mario_right     = 0b00000001,
-    mario_left      = 0b00000010,
-    mario_jump      = 0b00000100,
-    mario_hammer    = 0b00001000,
-    mario_run       = 0b00010000,
-    mario_climb     = 0b00100000,
-    mario_climb_end = 0b01000000,
+    mario_none      = 0b00000000u,
+    mario_right     = 0b00000001u,
+    mario_left      = 0b00000010u,
+    mario_jump      = 0b00000100u,
+    mario_hammer    = 0b00001000u,
+    mario_run       = 0b00010000u,
+    mario_climb     = 0b00100000u,
+    mario_climb_end = 0b01000000u,
 } mario_flags_t;
 
 typedef struct linked_list_node linked_list_node_t;
