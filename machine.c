@@ -11,8 +11,8 @@
 // --------------------------------------------------------------------------
 
 #include <stdio.h>
-#include "machine.h"
 #include "video.h"
+#include "machine.h"
 
 static machine_t s_machine;
 

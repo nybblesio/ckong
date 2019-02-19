@@ -15,8 +15,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
-#include "tile_map.h"
 #include "log.h"
+#include "tile_map.h"
 
 static tile_map_file_t s_tile_maps;
 

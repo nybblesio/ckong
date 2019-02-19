@@ -11,8 +11,8 @@
 // --------------------------------------------------------------------------
 
 #include <stdio.h>
-#include "player.h"
 #include "video.h"
+#include "player.h"
 
 static player_t s_player1 = {
     .lives = 3,

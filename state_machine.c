@@ -10,17 +10,17 @@
 //
 // --------------------------------------------------------------------------
 
-#include "game_controller.h"
-#include "state_machine.h"
-#include "palette.h"
-#include "machine.h"
-#include "player.h"
-#include "actor.h"
-#include "video.h"
+#include "log.h"
 #include "game.h"
 #include "tile.h"
-#include "log.h"
 #include "level.h"
+#include "actor.h"
+#include "video.h"
+#include "player.h"
+#include "machine.h"
+#include "palette.h"
+#include "state_machine.h"
+#include "game_controller.h"
 
 static bool tile_map_editor_enter(state_context_t* context);
 static bool tile_map_editor_update(state_context_t* context);
