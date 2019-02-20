@@ -351,6 +351,14 @@ void video_set_bg(const tile_map_t* map) {
     }
 }
 
+void video_fill_bg(uint16_t tile, uint8_t palette) {
+    for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
+        s_bg_control[i].tile = tile;
+        s_bg_control[i].palette = palette;
+        s_bg_control[i].flags = f_bg_enabled | f_bg_changed;
+    }
+}
+
 spr_control_block_t* video_sprite(uint8_t number) {
     return &s_spr_control[number];
 }

@@ -113,4 +113,6 @@ void video_set_bg(const tile_map_t* map);
 
 spr_control_block_t* video_sprite(uint8_t number);
 
+void video_fill_bg(uint16_t tile, uint8_t palette);
+
 bg_control_block_t* video_tile(uint8_t y, uint8_t x);

@@ -899,6 +899,17 @@ static actor_t s_donkey_kong_actor = {
     .animation_type = anim_none,
 };
 
+static actor_t s_heart_actor = {
+    .x = 0,
+    .y = 0,
+    .frame = 0,
+    .next_tick = 0,
+    .animation = NULL,
+    .flags = f_actor_none,
+    .animation_callback = NULL,
+    .animation_type = anim_none,
+};
+
 static actor_t* s_actors[] = {
     &s_mario_actor,
     &s_oil_barrel_actor,
@@ -906,6 +917,7 @@ static actor_t* s_actors[] = {
     &s_bonus_actor,
     &s_pauline_actor,
     &s_donkey_kong_actor,
+    &s_heart_actor,
     NULL
 };
 
@@ -970,10 +982,13 @@ actor_t* actor(actors_t actor) {
             return &s_oil_fire_actor;
         case actor_bonus:
             return &s_bonus_actor;
+        case actor_heart:
+            return &s_heart_actor;
         case actor_donkey_kong:
             return &s_donkey_kong_actor;
+        default:
+            return NULL;
     }
-    return NULL;
 }
 
 void actor_animation(actor_t* actor, animations_t animation) {
@@ -1073,6 +1088,9 @@ void actor_animation(actor_t* actor, animations_t animation) {
             break;
         case anim_oil_fire:
             actor->animation = &s_oil_fire_anim;
+            break;
+        default:
+            actor->animation = NULL;
             break;
     }
 

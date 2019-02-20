@@ -31,27 +31,33 @@ bool game_controller_button(
     if (!button_pressed) {
         switch (button) {
             case button_a:
-                button_pressed = s_keyboard_state[SDL_SCANCODE_RCTRL];
+                button_pressed = s_keyboard_state[SDL_SCANCODE_LCTRL];
                 break;
             case button_b:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_RCTRL];
                 break;
             case button_x:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_X];
                 break;
             case button_y:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_Y];
                 break;
             case button_back:
                 break;
             case button_guide:
                 break;
             case button_start:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_RETURN];
                 break;
             case button_left_stick:
                 break;
             case button_right_stick:
                 break;
             case button_left_shoulder:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_LSHIFT];
                 break;
             case button_right_shoulder:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_RSHIFT];
                 break;
             case button_dpad_up:
                 button_pressed = s_keyboard_state[SDL_SCANCODE_UP];
@@ -78,9 +84,9 @@ game_controller_t* game_controller_open() {
 
     game_controller_t* controller = malloc(sizeof(game_controller_t));
     controller->index = -1;
-    controller->controller = NULL;
-    controller->mapping = NULL;
     controller->name = NULL;
+    controller->mapping = NULL;
+    controller->controller = NULL;
 
     int32_t number_of_joysticks = SDL_NumJoysticks();
     for (int32_t i = 0; i < number_of_joysticks; ++i) {

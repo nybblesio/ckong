@@ -55,13 +55,17 @@ typedef bool (*state_machine_callback_t)(state_context_t*);
 //
 typedef enum states {
     state_boot,
-    state_attract,
-    state_long_introduction,
+    state_title,
+    state_credit,
     state_how_high,
-    state_game,
-    state_round_won,
-    state_donkey_kong_flees,
-    state_tile_map_editor
+    state_high_score,
+    state_insert_coin,
+    state_game_screen_1,
+    state_game_screen_2,
+    state_game_screen_3,
+    state_game_screen_4,
+    state_tile_map_editor,
+    state_long_introduction,
 } states_t;
 
 typedef struct state {

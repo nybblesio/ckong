@@ -51,9 +51,9 @@ static bool should_quit(void) {
 game_context_t* game_context_new() {
     log_message(category_app, "create empty game_context_t");
     game_context_t* context = malloc(sizeof(game_context_t));
-    context->messages = linked_list_new_node();
-    context->controller = NULL;
     context->valid = false;
+    context->controller = NULL;
+    context->messages = linked_list_new_node();
     return context;
 }
 
@@ -132,7 +132,7 @@ bool game_init(game_context_t* context) {
     s_state_context.machine = machine();
     s_state_context.player = player1();
 
-    state_push(&s_state_context, state_long_introduction);
+    state_push(&s_state_context, state_boot);
 
     context->valid = true;
 
