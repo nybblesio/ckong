@@ -14,12 +14,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "fwd.h"
 #include "linked_list.h"
-
-struct SDL_Window;
-struct SDL_Surface;
-struct SDL_Renderer;
-struct SDL_Texture;
 
 #define SCALE_X (4)
 #define SCALE_Y (4)

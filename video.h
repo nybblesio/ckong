@@ -13,14 +13,16 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include "fwd.h"
 #include "tile_map.h"
+#include "window.h"
 
+#define COMMANDS_MAX (256)
 #define BLINKERS_MAX (16)
 #define FRAME_RATE (60)
 #define MS_PER_FRAME (1000 / FRAME_RATE)
-
-struct SDL_Surface;
 
 typedef enum spr_flags {
     f_spr_none     = 0b00000000,
@@ -46,6 +48,13 @@ typedef struct rect {
     int16_t width;
     int16_t height;
 } rect_t;
+
+typedef struct color {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
+} color_t;
 
 typedef struct bg_blinker bg_blinker_t;
 typedef bool (*bg_blinker_callback)(bg_blinker_t*);
@@ -78,6 +87,72 @@ typedef struct spr_control_block {
     uint32_t data2;
 } spr_control_block_t;
 
+typedef enum {
+    vid_pre_none,
+    vid_pre_pen,
+    vid_pre_spr,
+    vid_pre_tile,
+    vid_pre_rect,
+    vid_pre_hline,
+    vid_pre_vline,
+} vid_pre_command_type_t;
+
+typedef struct {
+    color_t color;
+} vid_pen_data_t;
+
+typedef struct {
+    uint16_t x, y, w;
+} vid_hline_data_t;
+
+typedef struct {
+    uint16_t x, y, h;
+} vid_vline_data_t;
+
+typedef struct {
+    bool fill;
+    rect_t bounds;
+} vid_rect_data_t;
+
+typedef struct {
+    uint16_t x, y;
+    uint16_t tile;
+    uint8_t flags;
+    uint8_t palette;
+} vid_tile_data_t;
+
+typedef union {
+    vid_pen_data_t pen;
+    vid_rect_data_t rect;
+    vid_tile_data_t tile;
+    vid_hline_data_t hline;
+    vid_vline_data_t vline;
+} vid_pre_command_data_t;
+
+typedef struct {
+    vid_pre_command_type_t type;
+    vid_pre_command_data_t data;
+} vid_pre_command_t;
+
+typedef enum {
+    vid_post_none,
+    vid_post_text,
+} vid_post_command_type_t;
+
+typedef struct {
+    uint16_t x, y;
+    char buffer[256];
+} vid_text_data_t;
+
+typedef union {
+    vid_text_data_t text;
+} vid_post_command_data_t;
+
+typedef struct {
+    vid_post_command_type_t type;
+    vid_post_command_data_t data;
+} vid_post_command_t;
+
 void video_bg_str(
     const char* str,
     uint8_t y,
@@ -93,13 +168,13 @@ bg_blinker_t* video_bg_blink(
     uint32_t duration,
     bg_blinker_callback callback);
 
-void video_init(void);
-
-void video_update(void);
-
 void video_shutdown(void);
 
 void video_reset_bg(void);
+
+void video_rect(rect_t rect);
+
+void video_pen(color_t color);
 
 void video_reset_sprites(void);
 
@@ -107,12 +182,24 @@ void video_clip_rect_clear(void);
 
 void video_clip_rect(rect_t rect);
 
-struct SDL_Surface* video_surface(void);
+void video_fill_rect(rect_t rect);
+
+void video_update(window_t* window);
 
 void video_set_bg(const tile_map_t* map);
+
+void video_init(struct SDL_Renderer* renderer);
 
 spr_control_block_t* video_sprite(uint8_t number);
 
 void video_fill_bg(uint16_t tile, uint8_t palette);
 
 bg_control_block_t* video_tile(uint8_t y, uint8_t x);
+
+void video_vline(uint16_t x, uint16_t y, uint16_t h);
+
+void video_hline(uint16_t x, uint16_t y, uint16_t w);
+
+void video_text(uint16_t x, uint16_t y, const char* fmt, ...);
+
+void video_stamp_tile(uint16_t x, uint16_t y, uint16_t tile, uint8_t palette, uint8_t flags);

@@ -24,6 +24,11 @@ else ()
     message(STATUS "Unknown compiler; no custom flags set: ${CMAKE_C_COMPILER_ID}")
 endif()
 
+# dummy target used for file copies
+add_custom_target(dummy-target ALL DEPENDS custom-output)
+add_custom_command(OUTPUT custom-output COMMAND ${CMAKE_COMMAND} -E echo DEPENDS always-rebuild)
+add_custom_command(OUTPUT always-rebuild COMMAND ${CMAKE_COMMAND} -E echo)
+
 # freetype
 add_subdirectory(ext/freetype-2.9)
 include_directories(ext/freetype-2.9/include)
@@ -46,6 +51,7 @@ include_directories(ext/SDL_FontCache)
 
 add_executable(
         ckong
+        fwd.h
         main.c
         log.c log.h
         str.c str.h
@@ -69,3 +75,13 @@ target_link_libraries(
         SDL_FontCache
         SDL2_ttf
         SDL2-static)
+
+add_custom_target(ckong-configured DEPENDS dummy-target ckong)
+add_custom_command(
+        TARGET ckong-configured
+        COMMAND ${CMAKE_COMMAND} -E echo  "make_directory: ${PROJECT_BINARY_DIR}/logs"
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/logs
+
+        COMMAND ${CMAKE_COMMAND} -E echo "copy_directory: ${PROJECT_SOURCE_DIR}/assets to ${PROJECT_BINARY_DIR}/assets"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets ${PROJECT_BINARY_DIR}/assets
+)

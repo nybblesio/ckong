@@ -58,8 +58,9 @@ game_context_t* game_context_new() {
 }
 
 bool game_run(game_context_t* context) {
-    SDL_Surface* vg_surface = video_surface();
+    const color_t white = {.r = 0xff, .g = 0xff, .b = 0xff, .a = 0xff};
 
+    uint16_t fps = 0;
     uint16_t frame_count = 0;
     uint32_t last_time = SDL_GetTicks();
     uint32_t last_fps_time = last_time;
@@ -71,27 +72,16 @@ bool game_run(game_context_t* context) {
 
         actor_update();
 
-        video_update();
+        video_pen(white);
+        video_text(2, 2, "FPS: %d", fps);
 
-        SDL_UpdateTexture(
-            context->window.texture,
-            NULL,
-            vg_surface->pixels,
-            vg_surface->pitch);
+        video_update(&context->window);
 
-        SDL_RenderCopy(
-            context->window.renderer,
-            context->window.texture,
-            NULL,
-            NULL);
-
-        SDL_RenderPresent(context->window.renderer);
         uint32_t frame_duration = SDL_GetTicks() - frame_start_ticks;
 
         uint32_t fps_dt = last_time - last_fps_time;
         if (fps_dt >= 1000) {
-            log_message(category_app, "FPS: %d", frame_count);
-
+            fps = frame_count;
             frame_count = 0;
             last_fps_time = last_time;
         }
@@ -125,7 +115,7 @@ bool game_init(game_context_t* context) {
     machine_init();
     tile_map_init();
     tile_map_load();
-    video_init();
+    video_init(context->window.renderer);
 
     context->controller = game_controller_open();
     s_state_context.controller = context->controller;
@@ -149,6 +139,8 @@ void game_shutdown(game_context_t* context) {
     log_message(category_app, "close & free game_controller_t.");
     game_controller_close(context->controller);
 
+    video_shutdown();
+
     log_message(category_app, "destroy streaming texture.");
     if (context->window.texture != NULL)
         SDL_DestroyTexture(context->window.texture);
@@ -167,6 +159,4 @@ void game_shutdown(game_context_t* context) {
 
     if (context->messages != NULL)
         linked_list_free(context->messages);
-
-    video_shutdown();
 }

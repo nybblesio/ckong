@@ -62,9 +62,17 @@ static bool game_screen_4_enter(state_context_t* context);
 static bool game_screen_4_update(state_context_t* context);
 static bool game_screen_4_leave(state_context_t* context);
 
-static bool tile_map_editor_enter(state_context_t* context);
-static bool tile_map_editor_update(state_context_t* context);
-static bool tile_map_editor_leave(state_context_t* context);
+static bool editor_enter(state_context_t* context);
+static bool editor_update(state_context_t* context);
+static bool editor_leave(state_context_t* context);
+
+static bool editor_pick_tile_enter(state_context_t* context);
+static bool editor_pick_tile_update(state_context_t* context);
+static bool editor_pick_tile_leave(state_context_t* context);
+
+static bool editor_pick_palette_enter(state_context_t* context);
+static bool editor_pick_palette_update(state_context_t* context);
+static bool editor_pick_palette_leave(state_context_t* context);
 
 static bool long_introduction_enter(state_context_t* context);
 static bool long_introduction_update(state_context_t* context);
@@ -140,11 +148,25 @@ static state_t s_game_screen_4 = {
     .leave = game_screen_4_leave
 };
 
-static state_t s_tile_map_editor = {
-    .state = state_tile_map_editor,
-    .enter = tile_map_editor_enter,
-    .update = tile_map_editor_update,
-    .leave = tile_map_editor_leave
+static state_t s_editor = {
+    .state = state_editor,
+    .enter = editor_enter,
+    .update = editor_update,
+    .leave = editor_leave
+};
+
+static state_t s_editor_pick_tile = {
+    .state = state_editor_pick_tile,
+    .enter = editor_pick_tile_enter,
+    .update = editor_pick_tile_update,
+    .leave = editor_pick_tile_leave
+};
+
+static state_t s_editor_pick_palette = {
+    .state = state_editor_pick_palette,
+    .enter = editor_pick_palette_enter,
+    .update = editor_pick_palette_update,
+    .leave = editor_pick_palette_leave
 };
 
 static state_t s_long_introduction = {
@@ -244,6 +266,9 @@ static bool insert_coin_enter(state_context_t* context) {
 }
 
 static bool insert_coin_update(state_context_t* context) {
+    if (game_controller_button_pressed(context->controller, button_x)) {
+        state_push(context, state_editor);
+    }
     return true;
 }
 
@@ -518,12 +543,26 @@ static bool long_introduction_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 typedef struct tile_editor_state {
-    uint8_t index;
+    bool active;
     uint8_t x;
     uint8_t y;
+    uint8_t tx;
+    uint8_t ty;
+    uint16_t tile;
+    uint8_t index;
+    uint8_t palette;
 } tile_editor_state_t;
 
-static tile_editor_state_t s_tile_editor;
+static tile_editor_state_t s_tile_editor = {
+    .x = 0,
+    .y = 0,
+    .tx = 0,
+    .ty = 0,
+    .tile = 0,
+    .index = 0,
+    .palette = 0,
+    .active = false,
+};
 
 static void tile_map_select(bool flag) {
     bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
@@ -534,18 +573,30 @@ static void tile_map_select(bool flag) {
     block->flags |= f_bg_changed;
 }
 
-static bool tile_map_editor_enter(state_context_t* context) {
-    s_tile_editor.index = 0;
+static bool editor_enter(state_context_t* context) {
+    if (s_tile_editor.active)
+        return true;
+
     s_tile_editor.x = 0;
     s_tile_editor.y = 0;
+    s_tile_editor.tx = 0;
+    s_tile_editor.ty = 0;
+    s_tile_editor.tile = 0;
+    s_tile_editor.index = 0;
+    s_tile_editor.palette = 0;
+
     log_message(category_app, "tile map index: %d", s_tile_editor.index);
     video_set_bg(tile_map_index(s_tile_editor.index));
     tile_map_select(true);
+    s_tile_editor.active = true;
+
     return true;
 }
 
-static bool tile_map_editor_update(state_context_t* context) {
-    if (game_controller_button(context->controller, button_left_shoulder)) {
+static bool editor_update(state_context_t* context) {
+    video_text(2, SCREEN_HEIGHT - 8, "I:%02d", s_tile_editor.index);
+
+    if (game_controller_button_pressed(context->controller, button_left_shoulder)) {
         if (s_tile_editor.index > 0) {
             s_tile_editor.index--;
             video_set_bg(tile_map_index(s_tile_editor.index));
@@ -553,7 +604,7 @@ static bool tile_map_editor_update(state_context_t* context) {
         }
     }
 
-    if (game_controller_button(context->controller, button_right_shoulder)) {
+    if (game_controller_button_pressed(context->controller, button_right_shoulder)) {
         if (s_tile_editor.index < TILE_MAP_MAX - 1) {
             s_tile_editor.index++;
             video_set_bg(tile_map_index(s_tile_editor.index));
@@ -561,39 +612,23 @@ static bool tile_map_editor_update(state_context_t* context) {
         }
     }
 
-    if (game_controller_button(context->controller, button_a)) {
-        bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
-        if (block->palette > 0) {
-            block->palette--;
-            block->flags |= f_bg_changed;
-        }
+    if (game_controller_button_pressed(context->controller, button_x)) {
+        state_push(context, state_editor_pick_tile);
+        return true;
     }
 
-    if (game_controller_button(context->controller, button_b)) {
-        bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
-        if (block->palette < PALETTE_MAX) {
-            block->palette++;
-            block->flags |= f_bg_changed;
-        }
+    if (game_controller_button_pressed(context->controller, button_y)) {
+        state_push(context, state_editor_pick_palette);
+        return true;
     }
 
-    if (game_controller_button(context->controller, button_x)) {
-        bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
-        if (block->tile > 0) {
-            block->tile--;
-            block->flags |= f_bg_changed;
-        }
+    if (game_controller_button_pressed(context->controller, button_b)) {
+        s_tile_editor.active = false;
+        state_pop(context);
+        return true;
     }
 
-    if (game_controller_button(context->controller, button_y)) {
-        bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
-        if (block->tile < TILE_MAX) {
-            block->tile++;
-            block->flags |= f_bg_changed;
-        }
-    }
-
-    if (game_controller_button(context->controller, button_dpad_up)) {
+    if (game_controller_button_pressed(context->controller, button_dpad_up)) {
         if (s_tile_editor.y > 0) {
             tile_map_select(false);
             s_tile_editor.y--;
@@ -601,7 +636,7 @@ static bool tile_map_editor_update(state_context_t* context) {
         }
     }
 
-    if (game_controller_button(context->controller, button_dpad_down)) {
+    if (game_controller_button_pressed(context->controller, button_dpad_down)) {
         if (s_tile_editor.y < TILE_MAP_HEIGHT - 1) {
             tile_map_select(false);
             s_tile_editor.y++;
@@ -609,7 +644,7 @@ static bool tile_map_editor_update(state_context_t* context) {
         }
     }
 
-    if (game_controller_button(context->controller, button_dpad_left)) {
+    if (game_controller_button_pressed(context->controller, button_dpad_left)) {
         if (s_tile_editor.x > 0) {
             tile_map_select(false);
             s_tile_editor.x--;
@@ -617,7 +652,7 @@ static bool tile_map_editor_update(state_context_t* context) {
         }
     }
 
-    if (game_controller_button(context->controller, button_dpad_right)) {
+    if (game_controller_button_pressed(context->controller, button_dpad_right)) {
         if (s_tile_editor.x < TILE_MAP_WIDTH - 1) {
             tile_map_select(false);
             s_tile_editor.x++;
@@ -628,8 +663,113 @@ static bool tile_map_editor_update(state_context_t* context) {
     return true;
 }
 
-static bool tile_map_editor_leave(state_context_t* context) {
+static bool editor_leave(state_context_t* context) {
     tile_map_save();
+    return true;
+}
+
+static bool editor_pick_tile_enter(state_context_t* context) {
+    return true;
+}
+
+static bool editor_pick_tile_update(state_context_t* context) {
+    const color_t black = {0, 0, 0, 0xff};
+    const color_t blue  = {0x00, 0xff, 0xee, 0xff};
+    const color_t white = {0xff, 0xff, 0xff, 0xff};
+
+    if (game_controller_button_pressed(context->controller, button_b)) {
+        state_pop(context);
+        return true;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_dpad_up)) {
+        if (s_tile_editor.ty > 0)
+            s_tile_editor.ty--;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_dpad_down)) {
+        if (s_tile_editor.ty < 15)
+            s_tile_editor.ty++;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_dpad_left)) {
+        if (s_tile_editor.tx > 0)
+            s_tile_editor.tx--;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_dpad_right)) {
+        if (s_tile_editor.tx < 15)
+            s_tile_editor.tx++;
+    }
+
+    s_tile_editor.tile = (s_tile_editor.ty * 16) + s_tile_editor.tx;
+
+    rect_t box = {
+        .left = (SCREEN_WIDTH - 200) / 2,
+        .top = (SCREEN_HEIGHT - 200) / 2,
+        .width = 200,
+        .height = 200
+    };
+    video_pen(black);
+    video_fill_rect(box);
+    video_pen(white);
+    video_rect(box);
+    video_text(
+        box.left + 5,
+        box.top + 3,
+        "Select Tile",
+        s_tile_editor.palette);
+    video_text(
+        box.left + 5,
+        (box.top + box.height) - 10,
+        "Palette:%02d",
+        s_tile_editor.palette);
+    video_hline(box.left, box.top + 12, box.width);
+
+    uint16_t tx = box.left + 16;
+    uint16_t ty = box.top + 20;
+
+    for (uint16_t tile = 0; tile < TILE_MAX; tile++) {
+        uint8_t flags = f_bg_none;
+        if (tile == s_tile_editor.tile)
+            flags |= f_bg_select;
+        video_stamp_tile(tx, ty, tile, s_tile_editor.palette, flags);
+        tx += TILE_WIDTH + 2;
+        if (tx >= box.width) {
+            tx = box.left + 16;
+            ty += TILE_HEIGHT + 2;
+        }
+    }
+
+    return true;
+}
+
+static bool editor_pick_tile_leave(state_context_t* context) {
+    return true;
+}
+
+static bool editor_pick_palette_enter(state_context_t* context) {
+    return true;
+}
+
+static bool editor_pick_palette_update(state_context_t* context) {
+    if (game_controller_button_pressed(context->controller, button_b)) {
+        state_pop(context);
+        return true;
+    }
+
+    rect_t box = {
+        .left = SCREEN_WIDTH - 128,
+        .top = SCREEN_HEIGHT - 64,
+        .width = 126,
+        .height = 62
+    };
+    video_rect(box);
+
+    return true;
+}
+
+static bool editor_pick_palette_leave(state_context_t* context) {
     return true;
 }
 
@@ -671,6 +811,9 @@ void state_push(state_context_t* context, states_t state) {
         case state_credit:
             state_ptr = &s_credit;
             break;
+        case state_editor:
+            state_ptr = &s_editor;
+            break;
         case state_how_high:
             state_ptr = &s_how_high;
             break;
@@ -692,11 +835,14 @@ void state_push(state_context_t* context, states_t state) {
         case state_game_screen_4:
             state_ptr = &s_game_screen_4;
             break;
-        case state_tile_map_editor:
-            state_ptr = &s_tile_map_editor;
+        case state_editor_pick_tile:
+            state_ptr = &s_editor_pick_tile;
             break;
         case state_long_introduction:
             state_ptr = &s_long_introduction;
+            break;
+        case state_editor_pick_palette:
+            state_ptr = &s_editor_pick_palette;
             break;
         default:
             log_error(category_app, "unknown state");

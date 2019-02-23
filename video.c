@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <SDL_timer.h>
 #include <SDL_surface.h>
+#include <SDL_FontCache.h>
 #include "log.h"
 #include "tile.h"
 #include "video.h"
@@ -23,12 +24,19 @@
 
 static rect_t s_clip_rect;
 
+static FC_Font* s_font;
+
 static SDL_Surface* s_bg_surface;
 
 static SDL_Surface* s_fg_surface;
 
 static bg_blinker_t s_blinkers[BLINKERS_MAX];
 static uint32_t s_current_blinker = 0;
+
+static vid_pre_command_t s_pre_commands[COMMANDS_MAX];
+static vid_post_command_t s_post_commands[COMMANDS_MAX];
+static uint32_t s_current_pre_command = 0;
+static uint32_t s_current_post_command = 0;
 
 static spr_control_block_t s_spr_control[SPRITE_MAX];
 
@@ -101,7 +109,108 @@ void video_reset_bg(void) {
     }
 }
 
-static void video_bg_update(void) {
+static bool video_draw_spr(
+        SDL_Surface* surface,
+        uint16_t px,
+        uint16_t py,
+        uint16_t tile_index,
+        uint8_t pal_index,
+        uint8_t flags) {
+    const palette_t* pal = palette(pal_index);
+    if (pal == NULL)
+        return false;
+
+    const sprite_bitmap_t* bitmap = sprite_bitmap(tile_index);
+    if (bitmap == NULL)
+        return false;
+
+    const bool horizontal_flip = (flags & f_spr_hflip) == f_spr_hflip;
+    const bool vertical_flip = (flags & f_spr_vflip) == f_spr_vflip;
+
+    uint8_t sy = (uint8_t) (vertical_flip ? SPRITE_HEIGHT - 1 : 0);
+    int8_t syd = (int8_t) (vertical_flip ? -1 : 1);
+    int8_t sxd = (int8_t) (horizontal_flip ? -1 : 1);
+
+    for (uint32_t y = 0; y < SPRITE_HEIGHT; y++) {
+        uint32_t ty = py + y;
+        if (ty > s_clip_rect.top
+        &&  ty < s_clip_rect.top + s_clip_rect.height) {
+            uint8_t* p = surface->pixels + (ty * surface->pitch + (px * 4));
+            uint8_t sx = (uint8_t) (horizontal_flip ? SPRITE_WIDTH - 1 : 0);
+            for (uint32_t x = 0; x < SPRITE_WIDTH; x++) {
+                uint32_t tx = px + x;
+                if (tx < s_clip_rect.left || tx > s_clip_rect.left + s_clip_rect.width) {
+                    p += 4;
+                } else {
+                    const uint32_t pixel_offset = (const uint32_t) (sy * SPRITE_WIDTH + sx);
+                    const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
+                    if (pal_entry->alpha == 0x00)
+                        p += 4;
+                    else {
+                        *p++ = pal_entry->red;
+                        *p++ = pal_entry->green;
+                        *p++ = pal_entry->blue;
+                        *p++ = pal_entry->alpha;
+                    }
+                }
+                sx += sxd;
+            }
+        }
+        sy += syd;
+    }
+
+    return true;
+}
+
+static bool video_draw_tile(
+        SDL_Surface* surface,
+        uint16_t tx,
+        uint16_t ty,
+        uint16_t tile_index,
+        uint8_t pal_index,
+        uint8_t flags) {
+    const palette_t* pal = palette(pal_index);
+    if (pal == NULL)
+        return false;
+
+    const tile_bitmap_t* bitmap = tile_bitmap(tile_index);
+    if (bitmap == NULL)
+        return false;
+
+    const bool selected = (flags & f_bg_select) == f_bg_select;
+    const bool vertical_flip = (flags & f_bg_vflip) == f_bg_vflip;
+    const bool horizontal_flip = (flags & f_bg_hflip) == f_bg_hflip;
+
+    uint8_t sy = (uint8_t) (vertical_flip ? TILE_HEIGHT - 1 : 0);
+    int8_t syd = (int8_t) (vertical_flip ? -1 : 1);
+    int8_t sxd = (int8_t) (horizontal_flip ? -1 : 1);
+
+    for (uint32_t y = 0; y < TILE_HEIGHT; y++) {
+        uint8_t* p = surface->pixels + ((ty + y) * surface->pitch + (tx * 4));
+        uint8_t sx = (uint8_t) (horizontal_flip ? TILE_WIDTH - 1 : 0);
+        for (uint32_t x = 0; x < TILE_WIDTH; x++) {
+            const uint32_t pixel_offset = (const uint32_t) (sy * TILE_WIDTH + sx);
+            if (selected && ((x == 0 || x == TILE_WIDTH - 1) || (y == 0 || y == TILE_HEIGHT - 1))) {
+                *p++ = 0xff;
+                *p++ = 0xff;
+                *p++ = 0xff;
+                *p++ = 0xff;
+            } else {
+                const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
+                *p++ = pal_entry->red;
+                *p++ = pal_entry->green;
+                *p++ = pal_entry->blue;
+                *p++ = 0xff;
+            }
+            sx += sxd;
+        }
+        sy += syd;
+    }
+
+    return true;
+}
+
+static void video_bg_update() {
     uint32_t ticks = SDL_GetTicks();
 
     for (uint32_t i = 0; i < s_current_blinker; i++) {
@@ -163,45 +272,15 @@ static void video_bg_update(void) {
             palette_index = 0x0f;
         }
 
-        const palette_t* pal = palette(palette_index);
-        if (pal == NULL)
-            goto next_tile;
-
-        const tile_bitmap_t* bitmap = tile_bitmap(tile_index);
-        if (bitmap == NULL)
-            goto next_tile;
-
-        bool selected = (block->flags & f_bg_select) != 0;
-        bool vertical_flip = (block->flags & f_bg_vflip) != 0;
-        bool horizontal_flip = (block->flags & f_bg_hflip) != 0;
-
-        uint8_t sy = (uint8_t) (vertical_flip ? TILE_HEIGHT - 1 : 0);
-        int8_t syd = (int8_t) (vertical_flip ? -1 : 1);
-        int8_t sxd = (int8_t) (horizontal_flip ? -1 : 1);
-
-        for (uint32_t y = 0; y < TILE_HEIGHT; y++) {
-            uint8_t* p = s_bg_surface->pixels + ((ty + y) * s_bg_surface->pitch + (tx * 4));
-            uint8_t sx = (uint8_t) (horizontal_flip ? TILE_WIDTH - 1 : 0);
-            for (uint32_t x = 0; x < TILE_WIDTH; x++) {
-                const uint32_t pixel_offset = (const uint32_t) (sy * TILE_WIDTH + sx);
-                if (selected && ((x == 0 || x == TILE_WIDTH - 1) || (y == 0 || y == TILE_HEIGHT - 1))) {
-                    *p++ = 0xff;
-                    *p++ = 0xff;
-                    *p++ = 0xff;
-                    *p++ = 0xff;
-                } else {
-                    const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
-                    *p++ = pal_entry->red;
-                    *p++ = pal_entry->green;
-                    *p++ = pal_entry->blue;
-                    *p++ = 0xff;
-                }
-                sx += sxd;
-            }
-            sy += syd;
+        if (video_draw_tile(
+                s_bg_surface,
+                tx,
+                ty,
+                tile_index,
+                palette_index,
+                block->flags)) {
+            block->flags &= ~f_bg_changed;
         }
-
-        block->flags &= ~f_bg_changed;
 
     next_tile:
         tx += TILE_WIDTH;
@@ -216,63 +295,149 @@ static void video_bg_update(void) {
     SDL_BlitSurface(s_bg_surface, NULL, s_fg_surface, NULL);
 }
 
-static void video_fg_update(void) {
-    SDL_LockSurface(s_fg_surface);
+static void video_fg_update() {
     for (uint32_t i = 0; i < SPRITE_MAX; i++) {
         spr_control_block_t* block = &s_spr_control[i];
 
         if ((block->flags & f_spr_enabled) == 0)
             continue;
 
-        const palette_t* pal = palette(block->palette);
-        if (pal == NULL)
+        if (!video_draw_spr(
+                s_fg_surface,
+                block->x,
+                block->y,
+                block->tile,
+                block->palette,
+                block->flags)) {
             continue;
-
-        const sprite_bitmap_t* bitmap = sprite_bitmap(block->tile);
-        if (bitmap == NULL)
-            continue;
-
-        bool horizontal_flip = (block->flags & f_spr_hflip) != 0;
-        bool vertical_flip = (block->flags & f_spr_vflip) != 0;
-
-        uint8_t sy = (uint8_t) (vertical_flip ? SPRITE_HEIGHT - 1 : 0);
-        int8_t syd = (int8_t) (vertical_flip ? -1 : 1);
-        int8_t sxd = (int8_t) (horizontal_flip ? -1 : 1);
-
-        for (uint32_t y = 0; y < SPRITE_HEIGHT; y++) {
-            uint32_t ty = block->y + y;
-            if (ty > s_clip_rect.top
-            &&  ty < s_clip_rect.top + s_clip_rect.height) {
-                uint8_t* p = s_fg_surface->pixels + (ty * s_fg_surface->pitch + (block->x * 4));
-                uint8_t sx = (uint8_t) (horizontal_flip ? SPRITE_WIDTH - 1 : 0);
-                for (uint32_t x = 0; x < SPRITE_WIDTH; x++) {
-                    uint32_t tx = block->x + x;
-                    if (tx < s_clip_rect.left || tx > s_clip_rect.left + s_clip_rect.width) {
-                        p += 4;
-                    } else {
-                        const uint32_t pixel_offset = (const uint32_t) (sy * SPRITE_WIDTH + sx);
-                        const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
-                        if (pal_entry->alpha == 0x00)
-                            p += 4;
-                        else {
-                            *p++ = pal_entry->red;
-                            *p++ = pal_entry->green;
-                            *p++ = pal_entry->blue;
-                            *p++ = pal_entry->alpha;
-                        }
-                    }
-                    sx += sxd;
-                }
-            }
-            sy += syd;
         }
 
         block->flags &= ~f_spr_changed;
     }
-    SDL_UnlockSurface(s_fg_surface);
 }
 
-void video_init(void) {
+static void vline(uint16_t x, uint16_t y, uint16_t h, color_t* color) {
+    for (uint32_t h1 = 0; h1 < h; h1++) {
+        uint8_t* p = s_fg_surface->pixels + ((y + h1) * s_fg_surface->pitch + (x * 4));
+        *p++ = color->r;
+        *p++ = color->g;
+        *p++ = color->b;
+        *p = color->a;
+    }
+}
+
+static void hline(uint16_t x, uint16_t y, uint16_t w, color_t* color) {
+    uint8_t* p = s_fg_surface->pixels + ((y + 0) * s_fg_surface->pitch + (x * 4));
+    for (uint32_t w1 = 0; w1 < w; w1++) {
+        *p++ = color->r;
+        *p++ = color->g;
+        *p++ = color->b;
+        *p++ = color->a;
+    }
+}
+
+static void video_pre_commands() {
+    color_t color = {
+        .r = 0xff,
+        .g = 0xff,
+        .b = 0xff,
+        .a = 0xff
+    };
+
+    for (uint16_t i = 0; i < s_current_pre_command; i++) {
+        vid_pre_command_t* cmd = &s_pre_commands[i];
+        switch (cmd->type) {
+            case vid_pre_pen:
+                color = cmd->data.pen.color;
+                break;
+            case vid_pre_spr: {
+                const vid_tile_data_t* tile = &cmd->data.tile;
+                video_draw_spr(
+                    s_fg_surface,
+                    tile->x,
+                    tile->y,
+                    tile->tile,
+                    tile->palette,
+                    tile->flags);
+                break;
+            }
+            case vid_pre_tile: {
+                const vid_tile_data_t* tile = &cmd->data.tile;
+                video_draw_tile(
+                    s_fg_surface,
+                    tile->x,
+                    tile->y,
+                    tile->tile,
+                    tile->palette,
+                    tile->flags);
+                break;
+            }
+            case vid_pre_hline: {
+                const vid_hline_data_t* line = &cmd->data.hline;
+                hline(line->x, line->y, line->w, &color);
+                break;
+            }
+            case vid_pre_vline: {
+                const vid_vline_data_t* line = &cmd->data.vline;
+                vline(line->x, line->y, line->h, &color);
+                break;
+            }
+            case vid_pre_rect: {
+                SDL_Rect rect = {
+                    cmd->data.rect.bounds.left,
+                    cmd->data.rect.bounds.top,
+                    cmd->data.rect.bounds.width,
+                    cmd->data.rect.bounds.height
+                };
+                if (cmd->data.rect.fill) {
+                    uint32_t temp_color = SDL_MapRGBA(
+                        s_fg_surface->format,
+                        cmd->data.pen.color.r,
+                        cmd->data.pen.color.g,
+                        cmd->data.pen.color.b,
+                        cmd->data.pen.color.a);
+                    SDL_FillRect(s_fg_surface, &rect, temp_color);
+                } else {
+                    vline(rect.x,          rect.y,          rect.h, &color);
+                    vline(rect.x + rect.w, rect.y,          rect.h, &color);
+                    hline(rect.x,          rect.y,          rect.w, &color);
+                    hline(rect.x,          rect.y + rect.h, rect.w + 1, &color);
+                }
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    s_current_pre_command = 0;
+}
+
+static void video_post_commands(struct SDL_Renderer* renderer) {
+    for (uint16_t i = 0; i < s_current_post_command; i++) {
+        vid_post_command_t* cmd = &s_post_commands[i];
+        switch (cmd->type) {
+            case vid_post_text: {
+                vid_text_data_t* text = &cmd->data.text;
+                FC_Draw(
+                    s_font,
+                    renderer,
+                    text->x,
+                    text->y,
+                    text->buffer);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    s_current_post_command = 0;
+}
+
+void video_init(struct SDL_Renderer* renderer) {
 //    rect_t temp = {.left = 64, .top = 32, .width = 128, .height = 224};
 //    video_clip_rect(temp);
 
@@ -299,11 +464,41 @@ void video_init(void) {
     SDL_SetSurfaceBlendMode(s_fg_surface, SDL_BLENDMODE_NONE);
     log_message(category_video, "set s_bg_surface RLE enabled.");
     SDL_SetSurfaceRLE(s_fg_surface, SDL_TRUE);
+
+    log_message(category_video, "load font: assets/press-start-2p.ttf");
+    s_font = FC_CreateFont();
+    FC_LoadFont(
+        s_font,
+        renderer,
+        "../assets/press-start-2p.ttf",
+        8,
+        FC_MakeColor(0xff, 0xff, 0xff, 0xff),
+        TTF_STYLE_NORMAL);
 }
 
-void video_update(void) {
+void video_update(window_t* window) {
     video_bg_update();
+
+    SDL_LockSurface(s_fg_surface);
     video_fg_update();
+    video_pre_commands();
+    SDL_UnlockSurface(s_fg_surface);
+
+    SDL_UpdateTexture(
+        window->texture,
+        NULL,
+        s_fg_surface->pixels,
+        s_fg_surface->pitch);
+
+    SDL_RenderCopy(
+        window->renderer,
+        window->texture,
+        NULL,
+        NULL);
+
+    video_post_commands(window->renderer);
+
+    SDL_RenderPresent(window->renderer);
 }
 
 void video_shutdown(void) {
@@ -311,6 +506,8 @@ void video_shutdown(void) {
     SDL_FreeSurface(s_bg_surface);
     log_message(category_video, "free fg surface.");
     SDL_FreeSurface(s_fg_surface);
+    log_message(category_video, "free font.");
+    FC_FreeFont(s_font);
 }
 
 void video_reset_sprites(void) {
@@ -321,10 +518,6 @@ void video_reset_sprites(void) {
         s_spr_control[i].palette = 0;
         s_spr_control[i].flags = f_spr_none;
     }
-}
-
-SDL_Surface* video_surface(void) {
-    return s_fg_surface;
 }
 
 void video_clip_rect_clear(void) {
@@ -366,4 +559,100 @@ spr_control_block_t* video_sprite(uint8_t number) {
 bg_control_block_t* video_tile(uint8_t y, uint8_t x) {
     uint32_t index = (uint32_t) (y * TILE_MAP_WIDTH + x);
     return &s_bg_control[index];
+}
+
+void video_rect(rect_t rect) {
+    if (s_current_pre_command >= COMMANDS_MAX - 1)
+        return;
+
+    s_pre_commands[s_current_pre_command].type = vid_pre_rect;
+    s_pre_commands[s_current_pre_command].data.rect.fill = false;
+    s_pre_commands[s_current_pre_command].data.rect.bounds = rect;
+    ++s_current_pre_command;
+}
+
+void video_pen(color_t color) {
+    if (s_current_pre_command >= COMMANDS_MAX - 1)
+        return;
+
+    s_pre_commands[s_current_pre_command].type = vid_pre_pen;
+    s_pre_commands[s_current_pre_command].data.pen.color = color;
+    ++s_current_pre_command;
+}
+
+void video_fill_rect(rect_t rect) {
+    if (s_current_pre_command >= COMMANDS_MAX - 1)
+        return;
+
+    s_pre_commands[s_current_pre_command].type = vid_pre_rect;
+    s_pre_commands[s_current_pre_command].data.rect.fill = true;
+    s_pre_commands[s_current_pre_command].data.rect.bounds = rect;
+    ++s_current_pre_command;
+}
+
+void video_vline(uint16_t x, uint16_t y, uint16_t h) {
+    if (s_current_pre_command >= COMMANDS_MAX - 1)
+        return;
+
+    vid_vline_data_t line = {
+        .x = x,
+        .y = y,
+        .h = h
+    };
+    s_pre_commands[s_current_pre_command].type = vid_pre_vline;
+    s_pre_commands[s_current_pre_command].data.vline = line;
+    ++s_current_pre_command;
+}
+
+void video_hline(uint16_t x, uint16_t y, uint16_t w) {
+    if (s_current_pre_command >= COMMANDS_MAX - 1)
+        return;
+
+    s_pre_commands[s_current_pre_command].type = vid_pre_hline;
+
+    vid_hline_data_t line = {
+        .x = x,
+        .y = y,
+        .w = w
+    };
+    s_pre_commands[s_current_pre_command].data.hline = line;
+    ++s_current_pre_command;
+}
+
+void video_text(uint16_t x, uint16_t y, const char* fmt, ...) {
+    if (s_current_post_command >= COMMANDS_MAX - 1)
+        return;
+
+    s_post_commands[s_current_post_command].type = vid_post_text;
+
+    vid_text_data_t text = {
+        .x = x,
+        .y = y,
+    };
+
+    va_list list;
+    va_start(list, fmt);
+    vsnprintf(text.buffer, 256, fmt, list);
+    va_end(list);
+
+    s_post_commands[s_current_post_command].data.text = text;
+    ++s_current_post_command;
+}
+
+void video_stamp_tile(uint16_t x, uint16_t y, uint16_t tile, uint8_t palette, uint8_t flags) {
+    if (s_current_pre_command >= COMMANDS_MAX - 1)
+        return;
+
+    s_pre_commands[s_current_pre_command].type = vid_pre_tile;
+
+    vid_tile_data_t tile_data = {
+        .x = x,
+        .y = y,
+        .tile = tile,
+        .flags = flags,
+        .palette = palette,
+    };
+
+    s_pre_commands[s_current_pre_command].data.tile = tile_data;
+    ++s_current_pre_command;
 }

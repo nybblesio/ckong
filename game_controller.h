@@ -48,6 +48,10 @@ bool game_controller_button(
     game_controller_t* controller,
     game_controller_button_t button);
 
+bool game_controller_button_pressed(
+    game_controller_t* controller,
+    game_controller_button_t button);
+
 game_controller_t* game_controller_open();
 
 void game_controller_close(game_controller_t* controller);

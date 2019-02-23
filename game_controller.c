@@ -15,7 +15,28 @@
 #include <SDL_gamecontroller.h>
 #include "game_controller.h"
 
+static uint16_t s_button_state = 0;
 static const Uint8* s_keyboard_state;
+
+bool game_controller_button_pressed(
+        game_controller_t* controller,
+        game_controller_button_t button) {
+    const uint32_t bit_mask = (uint32_t)1 << (uint32_t)button;
+    for (int8_t i = 0; i < 32; i++) {
+        bool pressed = game_controller_button(controller, button);
+        if (pressed) {
+            if ((s_button_state & bit_mask) == 0) {
+                s_button_state |= bit_mask;
+            }
+        } else {
+            if ((s_button_state & bit_mask) == bit_mask) {
+                s_button_state &= ~bit_mask;
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 bool game_controller_button(
         game_controller_t* controller,

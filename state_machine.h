@@ -64,7 +64,9 @@ typedef enum states {
     state_game_screen_2,
     state_game_screen_3,
     state_game_screen_4,
-    state_tile_map_editor,
+    state_editor,
+    state_editor_pick_tile,
+    state_editor_pick_palette,
     state_long_introduction,
 } states_t;
 
