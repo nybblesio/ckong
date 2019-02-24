@@ -601,6 +601,11 @@ typedef struct {
     uint8_t value;
 } grid_value_t;
 
+typedef struct {
+    uint8_t x1, y1;
+    uint8_t x2, y2;
+} copy_range_t;
+
 typedef struct tile_editor_state {
     uint8_t x;
     uint8_t y;
@@ -609,11 +614,13 @@ typedef struct tile_editor_state {
     bool text_entry;
     char message[32];
     grid_value_t tile;
+    bool select_range;
     bool cursor_visible;
     grid_value_t palette;
     uint16_t cursor_frames;
     uint16_t message_frames;
     tile_editor_action_t action;
+    bg_control_block_t* copy_buffer;
 } tile_editor_state_t;
 
 typedef struct {
@@ -675,6 +682,7 @@ static const char* s_menu_options[] = {
 };
 
 static grid_value_t s_tile_undo;
+static copy_range_t s_copy_range;
 static grid_value_t s_palette_undo;
 static tile_editor_state_t s_tile_editor;
 
@@ -804,6 +812,8 @@ static bool editor_enter(state_context_t* context) {
     s_tile_editor.cursor_frames = 30;
     s_tile_editor.cursor_visible = true;
 
+    s_tile_editor.copy_buffer = NULL;
+
     log_message(category_app, "tile map index: %d", s_tile_editor.index);
     video_set_bg(tile_map_index(s_tile_editor.index));
     s_tile_editor.active = true;
@@ -821,6 +831,68 @@ static bool editor_update(state_context_t* context) {
 
     if (key_pressed(SDL_SCANCODE_F2)) {
         s_tile_editor.text_entry = !s_tile_editor.text_entry;
+    }
+
+    if (key_state(SDL_SCANCODE_RCTRL) && !s_tile_editor.select_range) {
+        if (key_state(SDL_SCANCODE_C)) {
+            if (s_tile_editor.copy_buffer != NULL) {
+                free(s_tile_editor.copy_buffer);
+                s_tile_editor.copy_buffer = NULL;
+            }
+
+            s_copy_range.x1 = s_tile_editor.x;
+            s_copy_range.y1 = s_tile_editor.y;
+            s_tile_editor.select_range = true;
+
+            return true;
+        }
+
+        if (key_state(SDL_SCANCODE_V)
+        &&  s_tile_editor.copy_buffer != NULL) {
+            const uint32_t width = (s_copy_range.x2 - s_copy_range.x1) + 1;
+            const uint32_t height = (s_copy_range.y2 - s_copy_range.y1) + 1;
+
+            uint32_t i = 0;
+            uint8_t tx = s_tile_editor.x;
+            uint8_t ty = s_tile_editor.y;
+            for (uint8_t y = 0; y < height; y++) {
+                for (uint8_t x = 0; x < width; x++) {
+                    bg_control_block_t* target_block = video_tile(ty, tx++);
+                    *target_block = s_tile_editor.copy_buffer[i++];
+                    target_block->flags |= f_bg_changed;
+                }
+                ++ty;
+                tx = s_tile_editor.x;
+            }
+
+            free(s_tile_editor.copy_buffer);
+            s_tile_editor.copy_buffer = NULL;
+            s_copy_range.x1 = 0;
+            s_copy_range.y1 = 0;
+            s_copy_range.x2 = 0;
+            s_copy_range.y2 = 0;
+
+            return true;
+        }
+    }
+
+    if (key_pressed(SDL_SCANCODE_RETURN)
+    &&  s_tile_editor.select_range) {
+        s_copy_range.x2 = s_tile_editor.x;
+        s_copy_range.y2 = s_tile_editor.y;
+
+        const uint32_t width = (s_copy_range.x2 - s_copy_range.x1) + 1;
+        const uint32_t height = (s_copy_range.y2 - s_copy_range.y1) + 1;
+
+        s_tile_editor.copy_buffer = malloc((height * width) * sizeof(bg_control_block_t));
+        uint32_t i = 0;
+        for (uint8_t y = s_copy_range.y1; y <= s_copy_range.y2; y++) {
+            for (uint8_t x = s_copy_range.x1; x <= s_copy_range.x2; x++) {
+                s_tile_editor.copy_buffer[i++] = *video_tile(y, x);
+            }
+        }
+
+        s_tile_editor.select_range = false;
     }
 
     if (key_pressed(SDL_SCANCODE_DELETE)) {
@@ -889,8 +961,7 @@ static bool editor_update(state_context_t* context) {
         }
     }
 
-    if (key_pressed(SDL_SCANCODE_H)
-    && !s_tile_editor.text_entry) {
+    if (key_pressed(SDL_SCANCODE_F2)) {
         bool is_set = block->flags & f_bg_hflip;
         if (is_set) {
             block->flags &= ~f_bg_hflip;
@@ -900,8 +971,7 @@ static bool editor_update(state_context_t* context) {
         block->flags |= f_bg_changed;
     }
 
-    if (key_pressed(SDL_SCANCODE_V)
-    && !s_tile_editor.text_entry) {
+    if (key_pressed(SDL_SCANCODE_F3)) {
         bool is_set = block->flags & f_bg_vflip;
         if (is_set) {
             block->flags &= ~f_bg_vflip;
@@ -918,7 +988,8 @@ static bool editor_update(state_context_t* context) {
     }
 
     if (game_controller_button_pressed(context->controller, button_a)
-    && !s_tile_editor.text_entry) {
+    && !s_tile_editor.text_entry
+    && !s_tile_editor.select_range) {
         bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
         if (block != NULL) {
             block->flags |= f_bg_changed;
@@ -944,7 +1015,8 @@ static bool editor_update(state_context_t* context) {
     }
 
     if (game_controller_button_pressed(context->controller, button_dpad_up)) {
-        if (s_tile_editor.y > 0)
+        const uint8_t min_y = s_tile_editor.select_range ? s_copy_range.y1 : 0;
+        if (s_tile_editor.y > min_y)
             s_tile_editor.y--;
     }
 
@@ -954,7 +1026,8 @@ static bool editor_update(state_context_t* context) {
     }
 
     if (game_controller_button_pressed(context->controller, button_dpad_left)) {
-        if (s_tile_editor.x > 0)
+        const uint8_t min_x = s_tile_editor.select_range ? s_copy_range.x1 : 0;
+        if (s_tile_editor.x > min_x)
             s_tile_editor.x--;
     }
 
@@ -979,7 +1052,21 @@ static bool editor_update(state_context_t* context) {
         }
     }
 
-    draw_cursor(s_tile_editor.y * TILE_HEIGHT, s_tile_editor.x * TILE_WIDTH);
+    const uint32_t cursor_y = s_tile_editor.y * TILE_HEIGHT;
+    const uint32_t cursor_x = s_tile_editor.x * TILE_WIDTH;
+
+    draw_cursor(cursor_y, cursor_x);
+
+    if (s_tile_editor.select_range) {
+        rect_t rect = {
+            .left = s_copy_range.x1 * TILE_WIDTH,
+            .top = s_copy_range.y1 * TILE_HEIGHT,
+            .width = ((s_tile_editor.x - s_copy_range.x1) + 1) * TILE_WIDTH,
+            .height = ((s_tile_editor.y - s_copy_range.y1) + 1) * TILE_HEIGHT
+        };
+        video_rect(s_green, rect);
+    }
+
     draw_footer(block);
 
     return true;
