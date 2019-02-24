@@ -511,6 +511,13 @@ void video_reset_sprites(void) {
     }
 }
 
+void video_clear_selected(void) {
+    for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
+        s_bg_control[i].flags &= ~f_bg_select;
+        s_bg_control[i].flags |= f_bg_changed;
+    }
+}
+
 void video_clip_rect_clear(void) {
     s_clip_rect.top = 8;
     s_clip_rect.left = 0;
@@ -539,7 +546,7 @@ void video_fill_bg(uint16_t tile, uint8_t palette) {
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
         s_bg_control[i].tile = tile;
         s_bg_control[i].palette = palette;
-        s_bg_control[i].flags = f_bg_enabled | f_bg_changed;
+        s_bg_control[i].flags |= f_bg_enabled | f_bg_changed;
     }
 }
 

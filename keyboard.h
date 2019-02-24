@@ -12,8 +12,8 @@
 
 #pragma once
 
-struct SDL_Window;
-struct SDL_Surface;
-struct SDL_Renderer;
-struct SDL_Texture;
-enum SDL_Scancode;
+#include <stdbool.h>
+
+bool key_state(uint32_t code);
+
+bool key_pressed(uint32_t code);

@@ -66,6 +66,7 @@ add_executable(
         palette.c palette.h
         machine.c machine.h
         tile_map.c tile_map.h
+        keyboard.c keyboard.h
         linked_list.c linked_list.h
         state_machine.c state_machine.h
         game_controller.c game_controller.h)

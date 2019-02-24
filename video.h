@@ -173,6 +173,8 @@ void video_reset_bg(void);
 
 void video_reset_sprites(void);
 
+void video_clear_selected(void);
+
 void video_clip_rect_clear(void);
 
 void video_clip_rect(rect_t rect);
