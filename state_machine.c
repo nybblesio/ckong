@@ -22,6 +22,10 @@
 #include "state_machine.h"
 #include "game_controller.h"
 
+static const color_t s_black = {0x00, 0x00, 0x00, 0xff};
+static const color_t s_blue  = {0x00, 0x00, 0xee, 0xff};
+static const color_t s_white = {0xff, 0xff, 0xff, 0xff};
+
 static bool boot_enter(state_context_t* context);
 static bool boot_update(state_context_t* context);
 static bool boot_leave(state_context_t* context);
@@ -65,6 +69,10 @@ static bool game_screen_4_leave(state_context_t* context);
 static bool editor_enter(state_context_t* context);
 static bool editor_update(state_context_t* context);
 static bool editor_leave(state_context_t* context);
+
+static bool editor_menu_enter(state_context_t* context);
+static bool editor_menu_update(state_context_t* context);
+static bool editor_menu_leave(state_context_t* context);
 
 static bool editor_pick_tile_enter(state_context_t* context);
 static bool editor_pick_tile_update(state_context_t* context);
@@ -153,6 +161,13 @@ static state_t s_editor = {
     .enter = editor_enter,
     .update = editor_update,
     .leave = editor_leave
+};
+
+static state_t s_editor_menu = {
+    .state = state_editor_menu,
+    .enter = editor_menu_enter,
+    .update = editor_menu_update,
+    .leave = editor_menu_leave
 };
 
 static state_t s_editor_pick_tile = {
@@ -542,6 +557,15 @@ static bool long_introduction_leave(state_context_t* context) {
 // Tile Map Editor State
 //
 // ----------------------------------------------------------------------------
+typedef enum {
+    editor_action_none,
+    editor_action_save,
+    editor_action_fill_row,
+    editor_action_fill_column,
+    editor_action_fill_map,
+    editor_action_exit
+} tile_editor_action_t;
+
 typedef struct tile_editor_state {
     bool active;
     uint8_t x;
@@ -553,6 +577,7 @@ typedef struct tile_editor_state {
     uint16_t tile;
     uint8_t index;
     uint8_t palette;
+    tile_editor_action_t action;
 } tile_editor_state_t;
 
 static tile_editor_state_t s_tile_editor = {
@@ -564,6 +589,7 @@ static tile_editor_state_t s_tile_editor = {
     .index = 0,
     .palette = 0,
     .active = false,
+    .action = editor_action_none
 };
 
 static void tile_map_select(bool flag) {
@@ -598,11 +624,7 @@ static bool editor_enter(state_context_t* context) {
 }
 
 static bool editor_update(state_context_t* context) {
-    const color_t black = {0x00, 0x00, 0x00, 0xff};
-    const color_t blue  = {0x00, 0x00, 0xee, 0xff};
-    const color_t white = {0xff, 0xff, 0xff, 0xff};
-
-    video_text(white, 2, SCREEN_HEIGHT - 8, "I:%02d", s_tile_editor.index);
+    video_text(s_white, 2, SCREEN_HEIGHT - 8, "I:%02d", s_tile_editor.index);
 
     if (game_controller_button_pressed(context->controller, button_left_shoulder)) {
         if (s_tile_editor.index > 0) {
@@ -636,6 +658,11 @@ static bool editor_update(state_context_t* context) {
             block->tile = s_tile_editor.tile;
             block->palette = s_tile_editor.palette;
         }
+        return true;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_guide)) {
+        state_push(context, state_editor_menu);
         return true;
     }
 
@@ -681,7 +708,78 @@ static bool editor_update(state_context_t* context) {
 }
 
 static bool editor_leave(state_context_t* context) {
-    tile_map_save();
+    return true;
+}
+
+static bool editor_menu_enter(state_context_t* context) {
+    return true;
+}
+
+static const char* s_menu_options[] = {
+    "Back",
+    "Save",
+    "Fill Row",
+    "Fill Column",
+    "Fill Map",
+    "Exit",
+    NULL
+};
+
+static bool editor_menu_update(state_context_t* context) {
+    if (game_controller_button_pressed(context->controller, button_back)) {
+        state_pop(context);
+        return true;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_a)) {
+        state_pop(context);
+        return true;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_dpad_up)) {
+        if (s_tile_editor.action > 0)
+            s_tile_editor.action--;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_dpad_down)) {
+        if (s_tile_editor.action < editor_action_exit)
+            s_tile_editor.action++;
+    }
+
+    rect_t box = {
+        .left = (SCREEN_WIDTH - 128) / 2,
+        .top = (SCREEN_HEIGHT - 128) / 2,
+        .width = 128,
+        .height = 128
+    };
+    video_fill_rect(s_black, box);
+    video_rect(s_white, box);
+    video_text(
+        s_white,
+        box.left + 5,
+        box.top + 3,
+        "Editor Menu");
+    video_hline(s_white, box.left, box.top + 12, box.width);
+
+    uint16_t tx = box.left + 16;
+    uint16_t ty = box.top + 20;
+
+    for (uint8_t i = 0;; i++) {
+        const char* option = s_menu_options[i];
+        if (option == NULL)
+            break;
+        const bool is_active = i == s_tile_editor.action;
+        const color_t* active_color = is_active ? &s_white : &s_blue;
+        if (is_active)
+            video_text(*active_color, tx - 10, ty, ">");
+        video_text(*active_color, tx, ty, option);
+        ty += 10;
+    }
+
+    return true;
+}
+
+static bool editor_menu_leave(state_context_t* context) {
     return true;
 }
 
@@ -690,10 +788,6 @@ static bool editor_pick_tile_enter(state_context_t* context) {
 }
 
 static bool editor_pick_tile_update(state_context_t* context) {
-    const color_t black = {0x00, 0x00, 0x00, 0xff};
-    const color_t blue  = {0x00, 0x00, 0xee, 0xff};
-    const color_t white = {0xff, 0xff, 0xff, 0xff};
-
     if (game_controller_button_pressed(context->controller, button_back)) {
         state_pop(context);
         return true;
@@ -727,20 +821,20 @@ static bool editor_pick_tile_update(state_context_t* context) {
         .width = 200,
         .height = 200
     };
-    video_fill_rect(black, box);
-    video_rect(white, box);
+    video_fill_rect(s_black, box);
+    video_rect(s_white, box);
     video_text(
-        white,
+        s_white,
         box.left + 5,
         box.top + 3,
         "Select Tile");
     video_text(
-        white,
+        s_white,
         box.left + 5,
         (box.top + box.height) - 10,
         "Palette:%02d",
         s_tile_editor.palette);
-    video_hline(white, box.left, box.top + 12, box.width);
+    video_hline(s_white, box.left, box.top + 12, box.width);
 
     uint16_t tx = box.left + 16;
     uint16_t ty = box.top + 20;
@@ -769,10 +863,6 @@ static bool editor_pick_palette_enter(state_context_t* context) {
 }
 
 static bool editor_pick_palette_update(state_context_t* context) {
-    const color_t black = {0x00, 0x00, 0x00, 0xff};
-    const color_t blue  = {0x00, 0x00, 0xee, 0xff};
-    const color_t white = {0xff, 0xff, 0xff, 0xff};
-
     if (game_controller_button_pressed(context->controller, button_back)) {
         state_pop(context);
         return true;
@@ -806,21 +896,23 @@ static bool editor_pick_palette_update(state_context_t* context) {
         .width = 232,
         .height = 232
     };
-    video_fill_rect(black, box);
-    video_rect(white, box);
+    video_fill_rect(s_black, box);
+    video_rect(s_white, box);
     video_text(
-        white,
+        s_white,
         box.left + 5,
         box.top + 3,
         "Select Palette");
-    video_hline(white, box.left, box.top + 12, box.width);
+    video_hline(s_white, box.left, box.top + 12, box.width);
 
     uint16_t tx = box.left + 22;
     uint16_t ty = box.top + 16;
 
     for (uint8_t pal = 0; pal < PALETTE_MAX; pal++) {
         const palette_t* p = palette(pal);
-        const color_t* active_color = pal == s_tile_editor.palette ? &white : &blue;
+        const color_t* active_color = pal == s_tile_editor.palette ?
+            &s_white :
+            &s_blue;
 
         video_text(*active_color, tx - 18, ty + 2, "%02d", pal);
 
@@ -913,6 +1005,9 @@ void state_push(state_context_t* context, states_t state) {
             break;
         case state_insert_coin:
             state_ptr = &s_insert_coin;
+            break;
+        case state_editor_menu:
+            state_ptr = &s_editor_menu;
             break;
         case state_game_screen_1:
             state_ptr = &s_game_screen_1;

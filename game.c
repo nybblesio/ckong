@@ -22,6 +22,8 @@
 #include "state_machine.h"
 #include "game_controller.h"
 
+static bool s_show_fps = true;
+
 static state_context_t s_state_context = {
     .player = NULL,
     .machine = NULL,
@@ -38,6 +40,10 @@ static bool should_quit(void) {
             switch (e.key.keysym.sym) {
                 case SDLK_ESCAPE: {
                     return true;
+                }
+                case SDLK_BACKQUOTE: {
+                    s_show_fps = !s_show_fps;
+                    break;
                 }
                 default: {
                     break;
@@ -72,7 +78,8 @@ bool game_run(game_context_t* context) {
 
         actor_update();
 
-        video_text(white, 2, 2, "FPS: %d", fps);
+        if (s_show_fps)
+            video_text(white, 2, 2, "FPS: %d", fps);
 
         video_update(&context->window);
 
