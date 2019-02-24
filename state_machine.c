@@ -548,6 +548,8 @@ typedef struct tile_editor_state {
     uint8_t y;
     uint8_t tx;
     uint8_t ty;
+    uint8_t px;
+    uint8_t py;
     uint16_t tile;
     uint8_t index;
     uint8_t palette;
@@ -581,6 +583,8 @@ static bool editor_enter(state_context_t* context) {
     s_tile_editor.y = 0;
     s_tile_editor.tx = 0;
     s_tile_editor.ty = 0;
+    s_tile_editor.px = 0;
+    s_tile_editor.py = 0;
     s_tile_editor.tile = 0;
     s_tile_editor.index = 0;
     s_tile_editor.palette = 0;
@@ -594,7 +598,11 @@ static bool editor_enter(state_context_t* context) {
 }
 
 static bool editor_update(state_context_t* context) {
-    video_text(2, SCREEN_HEIGHT - 8, "I:%02d", s_tile_editor.index);
+    const color_t black = {0x00, 0x00, 0x00, 0xff};
+    const color_t blue  = {0x00, 0x00, 0xee, 0xff};
+    const color_t white = {0xff, 0xff, 0xff, 0xff};
+
+    video_text(white, 2, SCREEN_HEIGHT - 8, "I:%02d", s_tile_editor.index);
 
     if (game_controller_button_pressed(context->controller, button_left_shoulder)) {
         if (s_tile_editor.index > 0) {
@@ -622,7 +630,16 @@ static bool editor_update(state_context_t* context) {
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_b)) {
+    if (game_controller_button_pressed(context->controller, button_a)) {
+        bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
+        if (block != NULL) {
+            block->tile = s_tile_editor.tile;
+            block->palette = s_tile_editor.palette;
+        }
+        return true;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_back)) {
         s_tile_editor.active = false;
         state_pop(context);
         return true;
@@ -673,11 +690,11 @@ static bool editor_pick_tile_enter(state_context_t* context) {
 }
 
 static bool editor_pick_tile_update(state_context_t* context) {
-    const color_t black = {0, 0, 0, 0xff};
-    const color_t blue  = {0x00, 0xff, 0xee, 0xff};
+    const color_t black = {0x00, 0x00, 0x00, 0xff};
+    const color_t blue  = {0x00, 0x00, 0xee, 0xff};
     const color_t white = {0xff, 0xff, 0xff, 0xff};
 
-    if (game_controller_button_pressed(context->controller, button_b)) {
+    if (game_controller_button_pressed(context->controller, button_back)) {
         state_pop(context);
         return true;
     }
@@ -710,21 +727,20 @@ static bool editor_pick_tile_update(state_context_t* context) {
         .width = 200,
         .height = 200
     };
-    video_pen(black);
-    video_fill_rect(box);
-    video_pen(white);
-    video_rect(box);
+    video_fill_rect(black, box);
+    video_rect(white, box);
     video_text(
+        white,
         box.left + 5,
         box.top + 3,
-        "Select Tile",
-        s_tile_editor.palette);
+        "Select Tile");
     video_text(
+        white,
         box.left + 5,
         (box.top + box.height) - 10,
         "Palette:%02d",
         s_tile_editor.palette);
-    video_hline(box.left, box.top + 12, box.width);
+    video_hline(white, box.left, box.top + 12, box.width);
 
     uint16_t tx = box.left + 16;
     uint16_t ty = box.top + 20;
@@ -753,18 +769,93 @@ static bool editor_pick_palette_enter(state_context_t* context) {
 }
 
 static bool editor_pick_palette_update(state_context_t* context) {
-    if (game_controller_button_pressed(context->controller, button_b)) {
+    const color_t black = {0x00, 0x00, 0x00, 0xff};
+    const color_t blue  = {0x00, 0x00, 0xee, 0xff};
+    const color_t white = {0xff, 0xff, 0xff, 0xff};
+
+    if (game_controller_button_pressed(context->controller, button_back)) {
         state_pop(context);
         return true;
     }
 
+    if (game_controller_button_pressed(context->controller, button_dpad_up)) {
+        if (s_tile_editor.py > 0)
+            s_tile_editor.py--;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_dpad_down)) {
+        if (s_tile_editor.py < 15)
+            s_tile_editor.py++;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_dpad_left)) {
+        if (s_tile_editor.px > 0)
+            s_tile_editor.px--;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_dpad_right)) {
+        if (s_tile_editor.px < 3)
+            s_tile_editor.px++;
+    }
+
+    s_tile_editor.palette = (s_tile_editor.py * 4) + s_tile_editor.px;
+
     rect_t box = {
-        .left = SCREEN_WIDTH - 128,
-        .top = SCREEN_HEIGHT - 64,
-        .width = 126,
-        .height = 62
+        .left = (SCREEN_WIDTH - 232) / 2,
+        .top = (SCREEN_HEIGHT - 232) / 2,
+        .width = 232,
+        .height = 232
     };
-    video_rect(box);
+    video_fill_rect(black, box);
+    video_rect(white, box);
+    video_text(
+        white,
+        box.left + 5,
+        box.top + 3,
+        "Select Palette");
+    video_hline(white, box.left, box.top + 12, box.width);
+
+    uint16_t tx = box.left + 22;
+    uint16_t ty = box.top + 16;
+
+    for (uint8_t pal = 0; pal < PALETTE_MAX; pal++) {
+        const palette_t* p = palette(pal);
+        const color_t* active_color = pal == s_tile_editor.palette ? &white : &blue;
+
+        video_text(*active_color, tx - 18, ty + 2, "%02d", pal);
+
+        const rect_t o = {
+            .left = tx,
+            .top = ty,
+            .width = (8 * 4) + 1,
+            .height = 10
+        };
+        video_rect(*active_color, o);
+
+        for (uint8_t i = 0; i < 4; i++) {
+            const palette_entry_t* e = &p->entries[i];
+            const rect_t r = {
+                .left = tx + 1,
+                .top = ty + 2,
+                .width = 7,
+                .height = 7
+            };
+            const color_t c = {
+                .r = e->red,
+                .g = e->green,
+                .b = e->blue,
+                .a = 0xff
+            };
+            video_fill_rect(c, r);
+            tx += 8;
+        }
+
+        tx += 24;
+        if (tx >= (box.width - 16)) {
+            tx = box.left + 22;
+            ty += 13;
+        }
+    }
 
     return true;
 }

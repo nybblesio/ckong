@@ -18,26 +18,6 @@
 static uint16_t s_button_state = 0;
 static const Uint8* s_keyboard_state;
 
-bool game_controller_button_pressed(
-        game_controller_t* controller,
-        game_controller_button_t button) {
-    const uint32_t bit_mask = (uint32_t)1 << (uint32_t)button;
-    for (int8_t i = 0; i < 32; i++) {
-        bool pressed = game_controller_button(controller, button);
-        if (pressed) {
-            if ((s_button_state & bit_mask) == 0) {
-                s_button_state |= bit_mask;
-            }
-        } else {
-            if ((s_button_state & bit_mask) == bit_mask) {
-                s_button_state &= ~bit_mask;
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 bool game_controller_button(
         game_controller_t* controller,
         game_controller_button_t button) {
@@ -64,8 +44,10 @@ bool game_controller_button(
                 button_pressed = s_keyboard_state[SDL_SCANCODE_Y];
                 break;
             case button_back:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_BACKSPACE];
                 break;
             case button_guide:
+                button_pressed = s_keyboard_state[SDL_SCANCODE_F1];
                 break;
             case button_start:
                 button_pressed = s_keyboard_state[SDL_SCANCODE_RETURN];
@@ -98,6 +80,26 @@ bool game_controller_button(
     }
 
     return button_pressed;
+}
+
+bool game_controller_button_pressed(
+        game_controller_t* controller,
+        game_controller_button_t button) {
+    const uint32_t bit_mask = (uint32_t)1 << (uint32_t)button;
+    for (int8_t i = 0; i < 32; i++) {
+        bool pressed = game_controller_button(controller, button);
+        if (pressed) {
+            if ((s_button_state & bit_mask) == 0) {
+                s_button_state |= bit_mask;
+            }
+        } else {
+            if ((s_button_state & bit_mask) == bit_mask) {
+                s_button_state &= ~bit_mask;
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 game_controller_t* game_controller_open() {

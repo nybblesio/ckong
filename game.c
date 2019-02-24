@@ -72,8 +72,7 @@ bool game_run(game_context_t* context) {
 
         actor_update();
 
-        video_pen(white);
-        video_text(2, 2, "FPS: %d", fps);
+        video_text(white, 2, 2, "FPS: %d", fps);
 
         video_update(&context->window);
 

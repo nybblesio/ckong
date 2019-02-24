@@ -33,8 +33,8 @@ static SDL_Surface* s_fg_surface;
 static bg_blinker_t s_blinkers[BLINKERS_MAX];
 static uint32_t s_current_blinker = 0;
 
-static vid_pre_command_t s_pre_commands[COMMANDS_MAX];
-static vid_post_command_t s_post_commands[COMMANDS_MAX];
+static vid_pre_command_t s_pre_commands[PRE_COMMANDS_MAX];
+static vid_post_command_t s_post_commands[POST_COMMANDS_MAX];
 static uint32_t s_current_pre_command = 0;
 static uint32_t s_current_post_command = 0;
 
@@ -337,19 +337,9 @@ static void hline(uint16_t x, uint16_t y, uint16_t w, color_t* color) {
 }
 
 static void video_pre_commands() {
-    color_t color = {
-        .r = 0xff,
-        .g = 0xff,
-        .b = 0xff,
-        .a = 0xff
-    };
-
     for (uint16_t i = 0; i < s_current_pre_command; i++) {
         vid_pre_command_t* cmd = &s_pre_commands[i];
         switch (cmd->type) {
-            case vid_pre_pen:
-                color = cmd->data.pen.color;
-                break;
             case vid_pre_spr: {
                 const vid_tile_data_t* tile = &cmd->data.tile;
                 video_draw_spr(
@@ -373,35 +363,31 @@ static void video_pre_commands() {
                 break;
             }
             case vid_pre_hline: {
-                const vid_hline_data_t* line = &cmd->data.hline;
-                hline(line->x, line->y, line->w, &color);
+                vid_hline_data_t* line = &cmd->data.hline;
+                hline(line->x, line->y, line->w, &line->color);
                 break;
             }
             case vid_pre_vline: {
-                const vid_vline_data_t* line = &cmd->data.vline;
-                vline(line->x, line->y, line->h, &color);
+                vid_vline_data_t* line = &cmd->data.vline;
+                vline(line->x, line->y, line->h, &line->color);
                 break;
             }
             case vid_pre_rect: {
+                vid_rect_data_t* vid_rect = &cmd->data.rect;
                 SDL_Rect rect = {
-                    cmd->data.rect.bounds.left,
-                    cmd->data.rect.bounds.top,
-                    cmd->data.rect.bounds.width,
-                    cmd->data.rect.bounds.height
+                    vid_rect->bounds.left,
+                    vid_rect->bounds.top,
+                    vid_rect->bounds.width,
+                    vid_rect->bounds.height
                 };
                 if (cmd->data.rect.fill) {
-                    uint32_t temp_color = SDL_MapRGBA(
-                        s_fg_surface->format,
-                        cmd->data.pen.color.r,
-                        cmd->data.pen.color.g,
-                        cmd->data.pen.color.b,
-                        cmd->data.pen.color.a);
-                    SDL_FillRect(s_fg_surface, &rect, temp_color);
+                    for (uint32_t l = 0; l < rect.h; l++)
+                        hline(rect.x, rect.y + l, rect.w, &vid_rect->color);
                 } else {
-                    vline(rect.x,          rect.y,          rect.h, &color);
-                    vline(rect.x + rect.w, rect.y,          rect.h, &color);
-                    hline(rect.x,          rect.y,          rect.w, &color);
-                    hline(rect.x,          rect.y + rect.h, rect.w + 1, &color);
+                    vline(rect.x,          rect.y,          rect.h,     &vid_rect->color);
+                    vline(rect.x + rect.w, rect.y,          rect.h,     &vid_rect->color);
+                    hline(rect.x,          rect.y,          rect.w,     &vid_rect->color);
+                    hline(rect.x,          rect.y + rect.h, rect.w + 1, &vid_rect->color);
                 }
                 break;
             }
@@ -420,11 +406,16 @@ static void video_post_commands(struct SDL_Renderer* renderer) {
         switch (cmd->type) {
             case vid_post_text: {
                 vid_text_data_t* text = &cmd->data.text;
-                FC_Draw(
+                FC_DrawColor(
                     s_font,
                     renderer,
                     text->x,
                     text->y,
+                    FC_MakeColor(
+                        text->color.r,
+                        text->color.g,
+                        text->color.b,
+                        text->color.a),
                     text->buffer);
                 break;
             }
@@ -561,40 +552,34 @@ bg_control_block_t* video_tile(uint8_t y, uint8_t x) {
     return &s_bg_control[index];
 }
 
-void video_rect(rect_t rect) {
-    if (s_current_pre_command >= COMMANDS_MAX - 1)
+void video_rect(color_t color, rect_t rect) {
+    if (s_current_pre_command >= PRE_COMMANDS_MAX - 1)
         return;
 
     s_pre_commands[s_current_pre_command].type = vid_pre_rect;
     s_pre_commands[s_current_pre_command].data.rect.fill = false;
+    s_pre_commands[s_current_pre_command].data.rect.color = color;
     s_pre_commands[s_current_pre_command].data.rect.bounds = rect;
     ++s_current_pre_command;
 }
 
-void video_pen(color_t color) {
-    if (s_current_pre_command >= COMMANDS_MAX - 1)
-        return;
-
-    s_pre_commands[s_current_pre_command].type = vid_pre_pen;
-    s_pre_commands[s_current_pre_command].data.pen.color = color;
-    ++s_current_pre_command;
-}
-
-void video_fill_rect(rect_t rect) {
-    if (s_current_pre_command >= COMMANDS_MAX - 1)
+void video_fill_rect(color_t color, rect_t rect) {
+    if (s_current_pre_command >= PRE_COMMANDS_MAX - 1)
         return;
 
     s_pre_commands[s_current_pre_command].type = vid_pre_rect;
     s_pre_commands[s_current_pre_command].data.rect.fill = true;
+    s_pre_commands[s_current_pre_command].data.rect.color = color;
     s_pre_commands[s_current_pre_command].data.rect.bounds = rect;
     ++s_current_pre_command;
 }
 
-void video_vline(uint16_t x, uint16_t y, uint16_t h) {
-    if (s_current_pre_command >= COMMANDS_MAX - 1)
+void video_vline(color_t color, uint16_t x, uint16_t y, uint16_t h) {
+    if (s_current_pre_command >= PRE_COMMANDS_MAX - 1)
         return;
 
     vid_vline_data_t line = {
+        .color = color,
         .x = x,
         .y = y,
         .h = h
@@ -604,13 +589,14 @@ void video_vline(uint16_t x, uint16_t y, uint16_t h) {
     ++s_current_pre_command;
 }
 
-void video_hline(uint16_t x, uint16_t y, uint16_t w) {
-    if (s_current_pre_command >= COMMANDS_MAX - 1)
+void video_hline(color_t color, uint16_t x, uint16_t y, uint16_t w) {
+    if (s_current_pre_command >= PRE_COMMANDS_MAX - 1)
         return;
 
     s_pre_commands[s_current_pre_command].type = vid_pre_hline;
 
     vid_hline_data_t line = {
+        .color = color,
         .x = x,
         .y = y,
         .w = w
@@ -619,13 +605,14 @@ void video_hline(uint16_t x, uint16_t y, uint16_t w) {
     ++s_current_pre_command;
 }
 
-void video_text(uint16_t x, uint16_t y, const char* fmt, ...) {
-    if (s_current_post_command >= COMMANDS_MAX - 1)
+void video_text(color_t color, uint16_t x, uint16_t y, const char* fmt, ...) {
+    if (s_current_post_command >= POST_COMMANDS_MAX - 1)
         return;
 
     s_post_commands[s_current_post_command].type = vid_post_text;
 
     vid_text_data_t text = {
+        .color = color,
         .x = x,
         .y = y,
     };
@@ -640,7 +627,7 @@ void video_text(uint16_t x, uint16_t y, const char* fmt, ...) {
 }
 
 void video_stamp_tile(uint16_t x, uint16_t y, uint16_t tile, uint8_t palette, uint8_t flags) {
-    if (s_current_pre_command >= COMMANDS_MAX - 1)
+    if (s_current_pre_command >= POST_COMMANDS_MAX - 1)
         return;
 
     s_pre_commands[s_current_pre_command].type = vid_pre_tile;
