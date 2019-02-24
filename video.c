@@ -177,7 +177,6 @@ static bool video_draw_tile(
     if (bitmap == NULL)
         return false;
 
-    const bool selected = (flags & f_bg_select) == f_bg_select;
     const bool vertical_flip = (flags & f_bg_vflip) == f_bg_vflip;
     const bool horizontal_flip = (flags & f_bg_hflip) == f_bg_hflip;
 
@@ -190,18 +189,11 @@ static bool video_draw_tile(
         uint8_t sx = (uint8_t) (horizontal_flip ? TILE_WIDTH - 1 : 0);
         for (uint32_t x = 0; x < TILE_WIDTH; x++) {
             const uint32_t pixel_offset = (const uint32_t) (sy * TILE_WIDTH + sx);
-            if (selected && ((x == 0 || x == TILE_WIDTH - 1) || (y == 0 || y == TILE_HEIGHT - 1))) {
-                *p++ = 0xff;
-                *p++ = 0xff;
-                *p++ = 0xff;
-                *p++ = 0xff;
-            } else {
-                const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
-                *p++ = pal_entry->red;
-                *p++ = pal_entry->green;
-                *p++ = pal_entry->blue;
-                *p++ = 0xff;
-            }
+            const palette_entry_t* pal_entry = &pal->entries[bitmap->data[pixel_offset]];
+            *p++ = pal_entry->red;
+            *p++ = pal_entry->green;
+            *p++ = pal_entry->blue;
+            *p++ = 0xff;
             sx += sxd;
         }
         sy += syd;
@@ -316,7 +308,7 @@ static void video_fg_update() {
     }
 }
 
-static void vline(uint16_t x, uint16_t y, uint16_t h, color_t* color) {
+static void vline(uint16_t y, uint16_t x, uint16_t h, color_t* color) {
     for (uint32_t h1 = 0; h1 < h; h1++) {
         uint8_t* p = s_fg_surface->pixels + ((y + h1) * s_fg_surface->pitch + (x * 4));
         *p++ = color->r;
@@ -326,7 +318,7 @@ static void vline(uint16_t x, uint16_t y, uint16_t h, color_t* color) {
     }
 }
 
-static void hline(uint16_t x, uint16_t y, uint16_t w, color_t* color) {
+static void hline(uint16_t y, uint16_t x, uint16_t w, color_t* color) {
     uint8_t* p = s_fg_surface->pixels + ((y + 0) * s_fg_surface->pitch + (x * 4));
     for (uint32_t w1 = 0; w1 < w; w1++) {
         *p++ = color->r;
@@ -364,12 +356,12 @@ static void video_pre_commands() {
             }
             case vid_pre_hline: {
                 vid_hline_data_t* line = &cmd->data.hline;
-                hline(line->x, line->y, line->w, &line->color);
+                hline(line->y, line->x, line->w, &line->color);
                 break;
             }
             case vid_pre_vline: {
                 vid_vline_data_t* line = &cmd->data.vline;
-                vline(line->x, line->y, line->h, &line->color);
+                vline(line->y, line->x, line->h, &line->color);
                 break;
             }
             case vid_pre_rect: {
@@ -382,12 +374,12 @@ static void video_pre_commands() {
                 };
                 if (cmd->data.rect.fill) {
                     for (uint32_t l = 0; l < rect.h; l++)
-                        hline(rect.x, rect.y + l, rect.w, &vid_rect->color);
+                        hline(rect.y + l, rect.x, rect.w, &vid_rect->color);
                 } else {
-                    vline(rect.x,          rect.y,          rect.h,     &vid_rect->color);
-                    vline(rect.x + rect.w, rect.y,          rect.h,     &vid_rect->color);
-                    hline(rect.x,          rect.y,          rect.w,     &vid_rect->color);
-                    hline(rect.x,          rect.y + rect.h, rect.w + 1, &vid_rect->color);
+                    vline(rect.y,          rect.x,          rect.h,     &vid_rect->color);
+                    vline(rect.y,          rect.x + rect.w, rect.h,     &vid_rect->color);
+                    hline(rect.y,          rect.x,          rect.w,     &vid_rect->color);
+                    hline(rect.y + rect.h, rect.x,          rect.w + 1, &vid_rect->color);
                 }
                 break;
             }
@@ -511,13 +503,6 @@ void video_reset_sprites(void) {
     }
 }
 
-void video_clear_selected(void) {
-    for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
-        s_bg_control[i].flags &= ~f_bg_select;
-        s_bg_control[i].flags |= f_bg_changed;
-    }
-}
-
 void video_clip_rect_clear(void) {
     s_clip_rect.top = 8;
     s_clip_rect.left = 0;
@@ -581,7 +566,7 @@ void video_fill_rect(color_t color, rect_t rect) {
     ++s_current_pre_command;
 }
 
-void video_vline(color_t color, uint16_t x, uint16_t y, uint16_t h) {
+void video_vline(color_t color, uint16_t y, uint16_t x, uint16_t h) {
     if (s_current_pre_command >= PRE_COMMANDS_MAX - 1)
         return;
 
@@ -596,7 +581,7 @@ void video_vline(color_t color, uint16_t x, uint16_t y, uint16_t h) {
     ++s_current_pre_command;
 }
 
-void video_hline(color_t color, uint16_t x, uint16_t y, uint16_t w) {
+void video_hline(color_t color, uint16_t y, uint16_t x, uint16_t w) {
     if (s_current_pre_command >= PRE_COMMANDS_MAX - 1)
         return;
 
@@ -612,7 +597,7 @@ void video_hline(color_t color, uint16_t x, uint16_t y, uint16_t w) {
     ++s_current_pre_command;
 }
 
-void video_text(color_t color, uint16_t x, uint16_t y, const char* fmt, ...) {
+void video_text(color_t color, uint16_t y, uint16_t x, const char* fmt, ...) {
     if (s_current_post_command >= POST_COMMANDS_MAX - 1)
         return;
 
@@ -633,7 +618,7 @@ void video_text(color_t color, uint16_t x, uint16_t y, const char* fmt, ...) {
     ++s_current_post_command;
 }
 
-void video_stamp_tile(uint16_t x, uint16_t y, uint16_t tile, uint8_t palette, uint8_t flags) {
+void video_stamp_tile(uint16_t y, uint16_t x, uint16_t tile, uint8_t palette, uint8_t flags) {
     if (s_current_pre_command >= POST_COMMANDS_MAX - 1)
         return;
 

@@ -40,7 +40,6 @@ typedef enum bg_flags {
     f_bg_hflip     = 0b00000010,
     f_bg_vflip     = 0b00000100,
     f_bg_changed   = 0b00001000,
-    f_bg_select    = 0b00010000,
 } bg_flags_t;
 
 typedef struct rect {
@@ -173,8 +172,6 @@ void video_reset_bg(void);
 
 void video_reset_sprites(void);
 
-void video_clear_selected(void);
-
 void video_clip_rect_clear(void);
 
 void video_clip_rect(rect_t rect);
@@ -195,10 +192,10 @@ void video_fill_bg(uint16_t tile, uint8_t palette);
 
 bg_control_block_t* video_tile(uint8_t y, uint8_t x);
 
-void video_vline(color_t color, uint16_t x, uint16_t y, uint16_t h);
+void video_vline(color_t color, uint16_t y, uint16_t x, uint16_t h);
 
-void video_hline(color_t color, uint16_t x, uint16_t y, uint16_t w);
+void video_hline(color_t color, uint16_t y, uint16_t x, uint16_t w);
 
-void video_text(color_t color, uint16_t x, uint16_t y, const char* fmt, ...);
+void video_text(color_t color, uint16_t y, uint16_t x, const char* fmt, ...);
 
-void video_stamp_tile(uint16_t x, uint16_t y, uint16_t tile, uint8_t palette, uint8_t flags);
+void video_stamp_tile(uint16_t y, uint16_t x, uint16_t tile, uint8_t palette, uint8_t flags);

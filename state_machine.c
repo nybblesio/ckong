@@ -608,7 +608,9 @@ typedef struct tile_editor_state {
     uint8_t index;
     char message[32];
     grid_value_t tile;
+    bool cursor_visible;
     grid_value_t palette;
+    uint16_t cursor_frames;
     uint16_t message_frames;
     tile_editor_action_t action;
 } tile_editor_state_t;
@@ -627,6 +629,54 @@ static grid_value_t s_tile_undo;
 static grid_value_t s_palette_undo;
 static tile_editor_state_t s_tile_editor;
 
+static void draw_cursor(uint32_t y, uint32_t x) {
+    if (s_tile_editor.cursor_frames > 0) {
+        s_tile_editor.cursor_frames--;
+    } else {
+        s_tile_editor.cursor_frames = 30;
+        s_tile_editor.cursor_visible = !s_tile_editor.cursor_visible;
+    }
+
+    if (s_tile_editor.cursor_visible) {
+        rect_t cursor_rect = {
+            .left = x,
+            .top =  y,
+            .width = TILE_WIDTH,
+            .height = TILE_HEIGHT
+        };
+        video_fill_rect(s_green, cursor_rect);
+    }
+}
+
+static void draw_footer(const bg_control_block_t* block) {
+    if (s_tile_editor.message_frames > 0) {
+        s_tile_editor.message_frames--;
+        video_text(
+            s_green,
+            SCREEN_HEIGHT - 20,
+            2,
+            s_tile_editor.message);
+    }
+
+    video_text(
+        s_white,
+        SCREEN_HEIGHT - 10,
+        1,
+        "I:%02X "
+        "X:%02X "
+        "Y:%02X "
+        "T:%02X "
+        "P:%02X "
+        "F:%c|%c",
+        s_tile_editor.index,
+        s_tile_editor.x,
+        s_tile_editor.y,
+        block->tile,
+        block->palette,
+        (block->flags & f_bg_hflip) == f_bg_hflip ? 'H' : '-',
+        (block->flags & f_bg_vflip) == f_bg_vflip ? 'V' : '-');
+}
+
 static void show_message(uint8_t frames, const char* fmt, ...) {
     s_tile_editor.message_frames = frames;
 
@@ -634,15 +684,6 @@ static void show_message(uint8_t frames, const char* fmt, ...) {
     va_start(list, fmt);
     vsnprintf(s_tile_editor.message, 32, fmt, list);
     va_end(list);
-}
-
-static void tile_map_select(bool flag) {
-    bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
-    if (!flag)
-        block->flags &= ~f_bg_select;
-    else
-        block->flags |= f_bg_select;
-    block->flags |= f_bg_changed;
 }
 
 static bool editor_enter(state_context_t* context) {
@@ -655,7 +696,6 @@ static bool editor_enter(state_context_t* context) {
                 break;
             }
             case editor_action_exit: {
-                video_clear_selected();
                 s_tile_editor.active = false;
                 state_pop(context);
                 break;
@@ -710,9 +750,11 @@ static bool editor_enter(state_context_t* context) {
     s_tile_editor.palette.value = 0;
     s_tile_editor.message_frames = 0;
 
+    s_tile_editor.cursor_frames = 30;
+    s_tile_editor.cursor_visible = true;
+
     log_message(category_app, "tile map index: %d", s_tile_editor.index);
     video_set_bg(tile_map_index(s_tile_editor.index));
-    tile_map_select(true);
     s_tile_editor.active = true;
 
     return true;
@@ -737,7 +779,6 @@ static bool editor_update(state_context_t* context) {
         }
 
         *video_tile(s_tile_editor.y, TILE_MAP_WIDTH - 1) = last_block;
-        tile_map_select(true);
     }
 
     if (key_pressed(SDL_SCANCODE_INSERT)) {
@@ -751,7 +792,6 @@ static bool editor_update(state_context_t* context) {
         }
 
         *video_tile(s_tile_editor.y, s_tile_editor.x) = start_block;
-        tile_map_select(true);
     }
 
     if (key_pressed(SDL_SCANCODE_H)) {
@@ -795,7 +835,6 @@ static bool editor_update(state_context_t* context) {
     }
 
     if (game_controller_button_pressed(context->controller, button_back)) {
-        video_clear_selected();
         s_tile_editor.active = false;
         state_pop(context);
         return true;
@@ -803,33 +842,25 @@ static bool editor_update(state_context_t* context) {
 
     if (game_controller_button_pressed(context->controller, button_dpad_up)) {
         if (s_tile_editor.y > 0) {
-            tile_map_select(false);
             s_tile_editor.y--;
-            tile_map_select(true);
         }
     }
 
     if (game_controller_button_pressed(context->controller, button_dpad_down)) {
         if (s_tile_editor.y < TILE_MAP_HEIGHT - 1) {
-            tile_map_select(false);
             s_tile_editor.y++;
-            tile_map_select(true);
         }
     }
 
     if (game_controller_button_pressed(context->controller, button_dpad_left)) {
         if (s_tile_editor.x > 0) {
-            tile_map_select(false);
             s_tile_editor.x--;
-            tile_map_select(true);
         }
     }
 
     if (game_controller_button_pressed(context->controller, button_dpad_right)) {
         if (s_tile_editor.x < TILE_MAP_WIDTH - 1) {
-            tile_map_select(false);
             s_tile_editor.x++;
-            tile_map_select(true);
         }
     }
 
@@ -838,7 +869,6 @@ static bool editor_update(state_context_t* context) {
             copy_bg(tile_map_index(s_tile_editor.index));
             s_tile_editor.index--;
             video_set_bg(tile_map_index(s_tile_editor.index));
-            tile_map_select(true);
         }
     }
 
@@ -847,36 +877,11 @@ static bool editor_update(state_context_t* context) {
             copy_bg(tile_map_index(s_tile_editor.index));
             s_tile_editor.index++;
             video_set_bg(tile_map_index(s_tile_editor.index));
-            tile_map_select(true);
         }
     }
 
-    if (s_tile_editor.message_frames > 0) {
-        s_tile_editor.message_frames--;
-        video_text(
-            s_green,
-            2,
-            SCREEN_HEIGHT - 20,
-            s_tile_editor.message);
-    }
-
-    video_text(
-        s_white,
-        1,
-        SCREEN_HEIGHT - 10,
-        "I:%02X "
-        "X:%02X "
-        "Y:%02X "
-        "T:%02X "
-        "P:%02X "
-        "F:%c|%c",
-        s_tile_editor.index,
-        s_tile_editor.x,
-        s_tile_editor.y,
-        block->tile,
-        block->palette,
-        (block->flags & f_bg_hflip) == f_bg_hflip ? 'H' : '-',
-        (block->flags & f_bg_vflip) == f_bg_vflip ? 'V' : '-');
+    draw_cursor(s_tile_editor.y * TILE_HEIGHT, s_tile_editor.x * TILE_WIDTH);
+    draw_footer(block);
 
     return true;
 }
@@ -920,10 +925,10 @@ static bool editor_menu_update(state_context_t* context) {
     video_rect(s_white, box);
     video_text(
         s_white,
-        box.left + 5,
         box.top + 3,
+        box.left + 5,
         "Editor Menu");
-    video_hline(s_white, box.left, box.top + 12, box.width);
+    video_hline(s_white, box.top + 12, box.left, box.width);
 
     uint16_t tx = box.left + 16;
     uint16_t ty = box.top + 20;
@@ -935,8 +940,8 @@ static bool editor_menu_update(state_context_t* context) {
         const bool is_active = i == s_tile_editor.action;
         const color_t* active_color = is_active ? &s_white : &s_blue;
         if (is_active)
-            video_text(*active_color, tx - 10, ty, ">");
-        video_text(*active_color, tx, ty, option);
+            video_text(*active_color, ty, tx - 10, ">");
+        video_text(*active_color, ty, tx, option);
         ty += 10;
     }
 
@@ -991,6 +996,16 @@ static bool editor_pick_tile_update(state_context_t* context) {
             tile->x++;
     }
 
+    if (game_controller_button_pressed(context->controller, button_left_shoulder)) {
+        if (s_tile_editor.palette.value > 0)
+            s_tile_editor.palette.value--;
+    }
+
+    if (game_controller_button_pressed(context->controller, button_right_shoulder)) {
+        if (s_tile_editor.palette.value < PALETTE_MAX - 1)
+            s_tile_editor.palette.value++;
+    }
+
     tile->value = (tile->y * 16) + tile->x;
 
     rect_t box = {
@@ -1003,31 +1018,35 @@ static bool editor_pick_tile_update(state_context_t* context) {
     video_rect(s_white, box);
     video_text(
         s_white,
-        box.left + 5,
         box.top + 3,
+        box.left + 5,
         "Select Tile");
     video_text(
         s_white,
-        box.left + 5,
         (box.top + box.height) - 10,
+        box.left + 5,
         "Palette:%02X",
         s_tile_editor.palette.value);
-    video_hline(s_white, box.left, box.top + 12, box.width);
+    video_hline(s_white, box.top + 12, box.left, box.width);
 
-    uint16_t tx = box.left + 16;
-    uint16_t ty = box.top + 20;
+    const uint16_t left_edge = box.left + 16;
+    const uint16_t top_edge = box.top + 20;
+
+    uint16_t tx = left_edge;
+    uint16_t ty = top_edge;
 
     for (uint16_t t = 0; t < TILE_MAX; t++) {
-        uint8_t flags = f_bg_none;
-        if (t == tile->value)
-            flags |= f_bg_select;
-        video_stamp_tile(tx, ty, t, s_tile_editor.palette.value, flags);
+        video_stamp_tile(ty, tx, t, s_tile_editor.palette.value, f_bg_none);
         tx += TILE_WIDTH + 2;
         if (tx >= box.width) {
-            tx = box.left + 16;
+            tx = left_edge;
             ty += TILE_HEIGHT + 2;
         }
     }
+
+    draw_cursor(
+        top_edge + (tile->y * (TILE_HEIGHT + 2)),
+        left_edge + (tile->x * (TILE_WIDTH + 2)));
 
     return true;
 }
@@ -1083,25 +1102,25 @@ static bool editor_pick_palette_update(state_context_t* context) {
         .width = 232,
         .height = 232
     };
-    video_fill_rect(s_black, box);
+    video_fill_rect(s_grey, box);
     video_rect(s_white, box);
     video_text(
         s_white,
-        box.left + 5,
         box.top + 3,
+        box.left + 5,
         "Select Palette");
-    video_hline(s_white, box.left, box.top + 12, box.width);
+    video_hline(s_white, box.top + 12, box.left, box.width);
 
-    uint16_t tx = box.left + 22;
-    uint16_t ty = box.top + 16;
+    const uint16_t top_edge = box.top + 16;
+    const uint16_t left_edge = box.left + 22;
+
+    uint16_t tx = left_edge;
+    uint16_t ty = top_edge;
 
     for (uint8_t i = 0; i < PALETTE_MAX; i++) {
         const palette_t* p = palette(i);
-        const color_t* active_color = i == pal->value ?
-            &s_white :
-            &s_blue;
 
-        video_text(*active_color, tx - 18, ty + 2, "%02X", i);
+        video_text(s_white, ty + 2, tx - 18, "%02X", i);
 
         const rect_t o = {
             .left = tx,
@@ -1109,7 +1128,7 @@ static bool editor_pick_palette_update(state_context_t* context) {
             .width = (8 * 4) + 1,
             .height = 10
         };
-        video_rect(*active_color, o);
+        video_rect(s_white, o);
 
         for (uint8_t j = 0; j < 4; j++) {
             const palette_entry_t* e = &p->entries[j];
@@ -1131,10 +1150,14 @@ static bool editor_pick_palette_update(state_context_t* context) {
 
         tx += 24;
         if (tx >= (box.width - 16)) {
-            tx = box.left + 22;
+            tx = left_edge;
             ty += 13;
         }
     }
+
+    draw_cursor(
+        top_edge + 2 + (pal->y * 13),
+        (left_edge - 18) + (pal->x * 56));
 
     return true;
 }
