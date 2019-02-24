@@ -961,7 +961,23 @@ static bool editor_update(state_context_t* context) {
         }
     }
 
-    if (key_pressed(SDL_SCANCODE_F2)) {
+    if (key_pressed(SDL_SCANCODE_HOME)) {
+        s_tile_editor.x = 0;
+    }
+
+    if (key_pressed(SDL_SCANCODE_END)) {
+        s_tile_editor.x = TILE_MAP_WIDTH - 1;
+    }
+
+    if (key_pressed(SDL_SCANCODE_PAGEUP)) {
+        s_tile_editor.y = 0;
+    }
+
+    if (key_pressed(SDL_SCANCODE_PAGEDOWN)) {
+        s_tile_editor.y = TILE_MAP_HEIGHT - 1;
+    }
+
+    if (key_pressed(SDL_SCANCODE_F3)) {
         bool is_set = block->flags & f_bg_hflip;
         if (is_set) {
             block->flags &= ~f_bg_hflip;
@@ -971,7 +987,7 @@ static bool editor_update(state_context_t* context) {
         block->flags |= f_bg_changed;
     }
 
-    if (key_pressed(SDL_SCANCODE_F3)) {
+    if (key_pressed(SDL_SCANCODE_F4)) {
         bool is_set = block->flags & f_bg_vflip;
         if (is_set) {
             block->flags &= ~f_bg_vflip;
@@ -1005,9 +1021,8 @@ static bool editor_update(state_context_t* context) {
     }
 
     if (game_controller_button_pressed(context->controller, button_back)) {
-        if (s_tile_editor.text_entry) {
-
-        } else {
+        if (!s_tile_editor.text_entry) {
+            copy_bg(tile_map_index(s_tile_editor.index));
             s_tile_editor.active = false;
             state_pop(context);
         }
