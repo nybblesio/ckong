@@ -268,7 +268,7 @@ static bool boot_update(state_context_t* context) {
         s_boot_state.delay = 2;
 
         if (s_boot_state.palette < 64) {
-            s_boot_state.palette++;
+            s_boot_state.palette += 2;
         } else {
             state_pop(context);
             state_push(context, state_insert_coin);
@@ -306,7 +306,7 @@ static bool credit_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool insert_coin_enter(state_context_t* context) {
-    video_fill_bg(0x0a, 0x0f);
+    video_set_bg(tile_map_index(0));
     return true;
 }
 
@@ -606,6 +606,7 @@ typedef struct tile_editor_state {
     uint8_t y;
     bool active;
     uint8_t index;
+    bool text_entry;
     char message[32];
     grid_value_t tile;
     bool cursor_visible;
@@ -614,6 +615,54 @@ typedef struct tile_editor_state {
     uint16_t message_frames;
     tile_editor_action_t action;
 } tile_editor_state_t;
+
+typedef struct {
+    int32_t scancode;
+    uint8_t ascii;
+} scancode_to_ascii_t;
+
+static const scancode_to_ascii_t s_ascii_keys[] = {
+    {SDL_SCANCODE_0,        '0'},
+    {SDL_SCANCODE_1,        '1'},
+    {SDL_SCANCODE_2,        '2'},
+    {SDL_SCANCODE_3,        '3'},
+    {SDL_SCANCODE_4,        '4'},
+    {SDL_SCANCODE_5,        '5'},
+    {SDL_SCANCODE_6,        '6'},
+    {SDL_SCANCODE_7,        '7'},
+    {SDL_SCANCODE_8,        '8'},
+    {SDL_SCANCODE_9,        '9'},
+    {SDL_SCANCODE_A,        'A'},
+    {SDL_SCANCODE_B,        'B'},
+    {SDL_SCANCODE_C,        'C'},
+    {SDL_SCANCODE_D,        'D'},
+    {SDL_SCANCODE_E,        'E'},
+    {SDL_SCANCODE_F,        'F'},
+    {SDL_SCANCODE_G,        'G'},
+    {SDL_SCANCODE_H,        'H'},
+    {SDL_SCANCODE_I,        'I'},
+    {SDL_SCANCODE_J,        'J'},
+    {SDL_SCANCODE_K,        'K'},
+    {SDL_SCANCODE_L,        'L'},
+    {SDL_SCANCODE_M,        'M'},
+    {SDL_SCANCODE_N,        'N'},
+    {SDL_SCANCODE_O,        'O'},
+    {SDL_SCANCODE_P,        'P'},
+    {SDL_SCANCODE_Q,        'Q'},
+    {SDL_SCANCODE_R,        'R'},
+    {SDL_SCANCODE_S,        'S'},
+    {SDL_SCANCODE_T,        'T'},
+    {SDL_SCANCODE_U,        'U'},
+    {SDL_SCANCODE_V,        'V'},
+    {SDL_SCANCODE_W,        'W'},
+    {SDL_SCANCODE_X,        'X'},
+    {SDL_SCANCODE_Y,        'Y'},
+    {SDL_SCANCODE_Z,        'Z'},
+    {SDL_SCANCODE_EQUALS,   '='},
+    {SDL_SCANCODE_MINUS,    '-'},
+    {SDL_SCANCODE_SPACE,    ' '},
+    {-1,                    0}
+};
 
 static const char* s_menu_options[] = {
     "Back",
@@ -662,19 +711,19 @@ static void draw_footer(const bg_control_block_t* block) {
         s_white,
         SCREEN_HEIGHT - 10,
         1,
-        "I:%02X "
-        "X:%02X "
-        "Y:%02X "
-        "T:%02X "
-        "P:%02X "
-        "F:%c|%c",
+        "I:%01X "
+        "%02X/%02X "
+        "%02X/%02X "
+        "%c|%c "
+        "%s",
         s_tile_editor.index,
-        s_tile_editor.x,
         s_tile_editor.y,
-        block->tile,
+        s_tile_editor.x,
         block->palette,
+        block->tile,
         (block->flags & f_bg_hflip) == f_bg_hflip ? 'H' : '-',
-        (block->flags & f_bg_vflip) == f_bg_vflip ? 'V' : '-');
+        (block->flags & f_bg_vflip) == f_bg_vflip ? 'V' : '-',
+        s_tile_editor.text_entry ? "ASCII" : "TILE");
 }
 
 static void show_message(uint8_t frames, const char* fmt, ...) {
@@ -750,6 +799,8 @@ static bool editor_enter(state_context_t* context) {
     s_tile_editor.palette.value = 0;
     s_tile_editor.message_frames = 0;
 
+    s_tile_editor.text_entry = false;
+
     s_tile_editor.cursor_frames = 30;
     s_tile_editor.cursor_visible = true;
 
@@ -766,6 +817,10 @@ static bool editor_update(state_context_t* context) {
     if (game_controller_button_pressed(context->controller, button_x)) {
         state_push(context, state_editor_pick_tile);
         return true;
+    }
+
+    if (key_pressed(SDL_SCANCODE_F2)) {
+        s_tile_editor.text_entry = !s_tile_editor.text_entry;
     }
 
     if (key_pressed(SDL_SCANCODE_DELETE)) {
@@ -794,7 +849,48 @@ static bool editor_update(state_context_t* context) {
         *video_tile(s_tile_editor.y, s_tile_editor.x) = start_block;
     }
 
-    if (key_pressed(SDL_SCANCODE_H)) {
+    if (s_tile_editor.text_entry) {
+        if (key_pressed(SDL_SCANCODE_BACKSPACE)) {
+            block->tile = 0x0a;
+            block->flags |= f_bg_changed;
+            if (s_tile_editor.x > 0)
+                s_tile_editor.x--;
+        } else {
+            for (uint32_t i = 0;; i++) {
+                const scancode_to_ascii_t* entry = &s_ascii_keys[i];
+                if (entry->scancode == -1)
+                    break;
+
+                if (key_pressed(entry->scancode)) {
+                    if (block != NULL) {
+                        const uint8_t c = entry->ascii;
+                        if (c == 0x20) {
+                            block->tile = 0x0a;
+                        } else if (c == '=') {
+                            block->tile = 52;
+                        } else if (c > 128) {
+                            block->tile = c;
+                        } else {
+                            block->tile = (uint16_t) (c - 48);
+                        }
+                        block->flags |= f_bg_changed;
+                        block->palette = s_tile_editor.palette.value;
+                    }
+                    if (s_tile_editor.x < TILE_MAP_WIDTH - 1) {
+                        s_tile_editor.x++;
+                    } else {
+                        s_tile_editor.x = 0;
+                        if (s_tile_editor.y < TILE_MAP_HEIGHT - 1)
+                            s_tile_editor.y++;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    if (key_pressed(SDL_SCANCODE_H)
+    && !s_tile_editor.text_entry) {
         bool is_set = block->flags & f_bg_hflip;
         if (is_set) {
             block->flags &= ~f_bg_hflip;
@@ -804,7 +900,8 @@ static bool editor_update(state_context_t* context) {
         block->flags |= f_bg_changed;
     }
 
-    if (key_pressed(SDL_SCANCODE_V)) {
+    if (key_pressed(SDL_SCANCODE_V)
+    && !s_tile_editor.text_entry) {
         bool is_set = block->flags & f_bg_vflip;
         if (is_set) {
             block->flags &= ~f_bg_vflip;
@@ -814,12 +911,14 @@ static bool editor_update(state_context_t* context) {
         block->flags |= f_bg_changed;
     }
 
-    if (game_controller_button_pressed(context->controller, button_y)) {
+    if (game_controller_button_pressed(context->controller, button_y)
+    && !s_tile_editor.text_entry) {
         state_push(context, state_editor_pick_palette);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_a)) {
+    if (game_controller_button_pressed(context->controller, button_a)
+    && !s_tile_editor.text_entry) {
         bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
         if (block != NULL) {
             block->flags |= f_bg_changed;
@@ -835,33 +934,33 @@ static bool editor_update(state_context_t* context) {
     }
 
     if (game_controller_button_pressed(context->controller, button_back)) {
-        s_tile_editor.active = false;
-        state_pop(context);
+        if (s_tile_editor.text_entry) {
+
+        } else {
+            s_tile_editor.active = false;
+            state_pop(context);
+        }
         return true;
     }
 
     if (game_controller_button_pressed(context->controller, button_dpad_up)) {
-        if (s_tile_editor.y > 0) {
+        if (s_tile_editor.y > 0)
             s_tile_editor.y--;
-        }
     }
 
     if (game_controller_button_pressed(context->controller, button_dpad_down)) {
-        if (s_tile_editor.y < TILE_MAP_HEIGHT - 1) {
+        if (s_tile_editor.y < TILE_MAP_HEIGHT - 1)
             s_tile_editor.y++;
-        }
     }
 
     if (game_controller_button_pressed(context->controller, button_dpad_left)) {
-        if (s_tile_editor.x > 0) {
+        if (s_tile_editor.x > 0)
             s_tile_editor.x--;
-        }
     }
 
     if (game_controller_button_pressed(context->controller, button_dpad_right)) {
-        if (s_tile_editor.x < TILE_MAP_WIDTH - 1) {
+        if (s_tile_editor.x < TILE_MAP_WIDTH - 1)
             s_tile_editor.x++;
-        }
     }
 
     if (game_controller_button_pressed(context->controller, button_left_shoulder)) {
@@ -895,12 +994,12 @@ static bool editor_menu_enter(state_context_t* context) {
 }
 
 static bool editor_menu_update(state_context_t* context) {
-    if (game_controller_button_pressed(context->controller, button_back)) {
+    if (game_controller_button_pressed(context->controller, button_a)) {
         state_pop(context);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_a)) {
+    if (game_controller_button_pressed(context->controller, button_back)) {
         state_pop(context);
         return true;
     }
