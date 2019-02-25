@@ -49,6 +49,5 @@ machine_t* machine(void) {
 }
 
 void machine_header_update(void) {
-    video_bg_str(0, 11, 0, true, "HIGH SCORE");
     video_bg_str(1, 13, 1, true, "%06d", s_file.machine.high_score);
 }

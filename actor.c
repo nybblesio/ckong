@@ -867,8 +867,8 @@ static actor_t s_bonus_actor = {
 };
 
 static actor_t s_oil_barrel_actor = {
-    .x = 16,
-    .y = 224,
+    .x = 12,
+    .y = 232,
     .frame = 0,
     .next_tick = 0,
     .flags = f_actor_none,
@@ -878,8 +878,8 @@ static actor_t s_oil_barrel_actor = {
 };
 
 static actor_t s_oil_fire_actor = {
-    .x = 16,
-    .y = 208,
+    .x = 12,
+    .y = 216,
     .frame = 0,
     .next_tick = 0,
     .flags = f_actor_none,

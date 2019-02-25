@@ -25,7 +25,8 @@ typedef enum {
     tile_map_title,
     tile_map_game_screen_2,
     tile_map_introduction,
-    tile_map_how_high
+    tile_map_how_high,
+    tile_map_game_screen_1
 } tile_maps_t;
 
 typedef struct {

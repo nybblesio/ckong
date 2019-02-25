@@ -370,7 +370,7 @@ static bool title_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool game_screen_1_enter(state_context_t* context) {
-    video_bg_set(tile_map(tile_map_game_screen_2));
+    video_bg_set(tile_map(tile_map_game_screen_1));
 
     actor_t* oil_barrel = actor(actor_oil_barrel);
     oil_barrel->flags |= f_actor_enabled;
@@ -379,8 +379,8 @@ static bool game_screen_1_enter(state_context_t* context) {
     oil_fire->flags |= f_actor_enabled;
 
     actor_t* mario = actor(actor_mario);
-    mario->x = 64;
-    mario->y = 191;
+    mario->x = 32;
+    mario->y = 232;
     mario->data1 = mario_right;
     mario->flags |= f_actor_enabled;
 
