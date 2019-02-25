@@ -19,8 +19,8 @@
 #include "window.h"
 #include "player.h"
 #include "machine.h"
+#include "joystick.h"
 #include "state_machine.h"
-#include "game_controller.h"
 
 static bool s_show_fps = true;
 
@@ -28,7 +28,7 @@ static state_context_t s_state_context = {
     .player = NULL,
     .machine = NULL,
     .level = NULL,
-    .controller = NULL
+    .joystick = NULL
 };
 
 static bool should_quit(void) {
@@ -58,8 +58,8 @@ game_context_t* game_context_new() {
     log_message(category_app, "create empty game_context_t");
     game_context_t* context = malloc(sizeof(game_context_t));
     context->valid = false;
-    context->controller = NULL;
-    context->messages = linked_list_new_node();
+    context->joystick = NULL;
+    context->messages = ll_new_node();
     return context;
 }
 
@@ -119,12 +119,16 @@ bool game_init(game_context_t* context) {
     }
 
     machine_init();
+    machine_load();
+
     tile_map_init();
     tile_map_load();
+
     video_init(context->window.renderer);
 
-    context->controller = game_controller_open();
-    s_state_context.controller = context->controller;
+    log_message(category_app, "connect to joystick.");
+    context->joystick = joystick_open();
+    s_state_context.joystick = context->joystick;
     s_state_context.machine = machine();
     s_state_context.player = player1();
 
@@ -136,14 +140,17 @@ bool game_init(game_context_t* context) {
 }
 
 void game_shutdown(game_context_t* context) {
+    log_message(category_app, "save machine state.");
+    machine_save();
+
     log_message(category_app, "pop last state from stack.");
     state_pop(&s_state_context);
 
     if (context == NULL)
         return;
 
-    log_message(category_app, "close & free game_controller_t.");
-    game_controller_close(context->controller);
+    log_message(category_app, "close & free joystick_t.");
+    joystick_close(context->joystick);
 
     video_shutdown();
 
@@ -161,8 +168,8 @@ void game_shutdown(game_context_t* context) {
 
     log_message(category_app, "free messages list.");
     if (context->window.messages != NULL)
-        linked_list_free(context->window.messages);
+        ll_free(context->window.messages);
 
     if (context->messages != NULL)
-        linked_list_free(context->messages);
+        ll_free(context->messages);
 }

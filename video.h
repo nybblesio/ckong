@@ -25,7 +25,7 @@
 #define FRAME_RATE (60)
 #define MS_PER_FRAME (1000 / FRAME_RATE)
 
-typedef enum spr_flags {
+typedef enum {
     f_spr_none     = 0b00000000,
     f_spr_enabled  = 0b00000001,
     f_spr_collided = 0b00000010,
@@ -34,7 +34,7 @@ typedef enum spr_flags {
     f_spr_changed  = 0b00010000,
 } spr_flags_t;
 
-typedef enum bg_flags {
+typedef enum {
     f_bg_none      = 0b00000000,
     f_bg_enabled   = 0b00000001,
     f_bg_hflip     = 0b00000010,
@@ -42,14 +42,14 @@ typedef enum bg_flags {
     f_bg_changed   = 0b00001000,
 } bg_flags_t;
 
-typedef struct rect {
+typedef struct {
     int16_t left;
     int16_t top;
     int16_t width;
     int16_t height;
 } rect_t;
 
-typedef struct color {
+typedef struct {
     uint8_t r;
     uint8_t g;
     uint8_t b;
@@ -69,7 +69,7 @@ typedef struct bg_blinker {
     bg_blinker_callback callback;
 } bg_blinker_t;
 
-typedef struct bg_control_block {
+typedef struct {
     uint16_t tile;
     uint8_t flags;
     uint8_t palette;
@@ -77,7 +77,7 @@ typedef struct bg_control_block {
     uint32_t data2;
 } bg_control_block_t;
 
-typedef struct spr_control_block {
+typedef struct {
     uint16_t y;
     uint16_t x;
     uint16_t tile;
@@ -158,6 +158,10 @@ void video_bg_str(
     uint8_t palette,
     bool enabled);
 
+void video_shutdown(void);
+
+void video_bg_reset(void);
+
 bg_blinker_t* video_bg_blink(
     uint8_t y,
     uint8_t x,
@@ -165,10 +169,6 @@ bg_blinker_t* video_bg_blink(
     uint8_t w,
     uint32_t duration,
     bg_blinker_callback callback);
-
-void video_shutdown(void);
-
-void video_reset_bg(void);
 
 void video_reset_sprites(void);
 
@@ -178,7 +178,7 @@ void video_clip_rect(rect_t rect);
 
 void video_update(window_t* window);
 
-void video_set_bg(const tile_map_t* map);
+void video_bg_set(const tile_map_t* map);
 
 void video_rect(color_t color, rect_t rect);
 
@@ -188,7 +188,7 @@ void video_fill_rect(color_t color, rect_t rect);
 
 spr_control_block_t* video_sprite(uint8_t number);
 
-void video_fill_bg(uint16_t tile, uint8_t palette);
+void video_bg_fill(uint16_t tile, uint8_t palette);
 
 bg_control_block_t* video_tile(uint8_t y, uint8_t x);
 

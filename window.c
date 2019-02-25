@@ -18,7 +18,7 @@
 window_t window_create() {
     window_t result;
     result.valid = false;
-    result.messages = linked_list_new_node();
+    result.messages = ll_new_node();
 
     log_message(category_video, "Create SDL window.");
     result.scale_x = SCALE_X;

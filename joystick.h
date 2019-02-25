@@ -15,11 +15,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "fwd.h"
 
-struct _SDL_GameController;
-
-typedef enum game_controller_button {
-    invalid = -1,
+typedef enum {
+    button_invalid = -1,
     button_a,
     button_b,
     button_x,
@@ -35,23 +34,23 @@ typedef enum game_controller_button {
     button_dpad_down,
     button_dpad_left,
     button_dpad_right,
-} game_controller_button_t;
+} joystick_button_t;
 
-typedef struct game_controller {
+typedef struct {
     int32_t index;
     const char* name;
     const char* mapping;
     struct _SDL_GameController* controller;
-} game_controller_t;
+} joystick_t;
 
-bool game_controller_button(
-    game_controller_t* controller,
-    game_controller_button_t button);
+bool joystick_button(
+    joystick_t* joy,
+    joystick_button_t button);
 
-bool game_controller_button_pressed(
-    game_controller_t* controller,
-    game_controller_button_t button);
+bool joystick_button_pressed(
+    joystick_t* joy,
+    joystick_button_t button);
 
-game_controller_t* game_controller_open();
+joystick_t* joystick_open();
 
-void game_controller_close(game_controller_t* controller);
+void joystick_close(joystick_t* joy);

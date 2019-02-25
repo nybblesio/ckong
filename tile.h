@@ -20,7 +20,7 @@
 #define TILE_SIZE (TILE_HEIGHT * TILE_WIDTH)
 #define TILE_MAX (256)
 
-typedef struct tile_bitmap {
+typedef struct {
     uint8_t data[TILE_SIZE];
 } tile_bitmap_t;
 

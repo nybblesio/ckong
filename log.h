@@ -12,7 +12,7 @@
 
 #pragma once
 
-typedef enum log_category {
+typedef enum {
     category_app,
     category_error,
     category_assert,

@@ -100,7 +100,7 @@ bg_blinker_t* video_bg_blink(
     return blinker;
 }
 
-void video_reset_bg(void) {
+void video_bg_reset(void) {
     s_current_blinker = 0;
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
         s_bg_control[i].tile = 0;
@@ -517,7 +517,7 @@ void video_clip_rect(rect_t rect) {
     s_clip_rect.height = rect.height;
 }
 
-void video_set_bg(const tile_map_t* map) {
+void video_bg_set(const tile_map_t* map) {
     assert(map != NULL);
 
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
@@ -527,7 +527,7 @@ void video_set_bg(const tile_map_t* map) {
     }
 }
 
-void video_fill_bg(uint16_t tile, uint8_t palette) {
+void video_bg_fill(uint16_t tile, uint8_t palette) {
     for (uint32_t i = 0; i < TILE_MAP_SIZE; i++) {
         s_bg_control[i].tile = tile;
         s_bg_control[i].palette = palette;

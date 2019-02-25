@@ -11,31 +11,45 @@
 // --------------------------------------------------------------------------
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <unistd.h>
+#include "log.h"
 #include "video.h"
 #include "machine.h"
 
-static machine_t s_machine;
+static machine_file_t s_file;
 
 void machine_init(void) {
-    s_machine.credits = 0;
-    s_machine.high_score = 998779;
+    strncpy(s_file.header, "CKONG11*", 8);
+    s_file.machine.credits = 0;
+    s_file.machine.high_score = 0;
+}
+
+void machine_load(void) {
+    if (access("machine.dat", F_OK) == -1) {
+        log_warn(category_app, "machine.dat file is missing; not loading.");
+        return;
+    }
+    FILE* file = fopen("machine.dat", "rb");
+    fread(&s_file, sizeof(machine_file_t), 1, file);
+    fclose(file);
+}
+
+void machine_save(void) {
+    FILE* file = fopen("machine.dat", "wb");
+    fwrite(&s_file, sizeof(machine_file_t), 1, file);
+    fclose(file);
 }
 
 machine_t* machine(void) {
-    return &s_machine;
-}
-
-void machine_load_config(void) {
-    // XXX: read config file
-}
-
-void machine_save_config(void) {
-    // XXX: write config file
+    return &s_file.machine;
 }
 
 void machine_header_update(void) {
     video_bg_str("HIGH SCORE", 0, 11, 0, true);
     char buffer[7];
-    snprintf(&buffer[0], 7, "%06d", s_machine.high_score);
+    snprintf(&buffer[0], 7, "%06d", s_file.machine.high_score);
     video_bg_str(buffer, 1, 13, 1, true);
 }

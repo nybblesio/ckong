@@ -17,7 +17,7 @@
 #include <stdbool.h>
 #include "tile_map.h"
 
-typedef struct level {
+typedef struct {
     tile_maps_t tile_map;
 } level_t;
 

@@ -15,17 +15,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-typedef struct level level_t;
-typedef struct player player_t;
-typedef struct machine machine_t;
-typedef struct game_controller game_controller_t;
+#include "level.h"
+#include "player.h"
+#include "machine.h"
+#include "joystick.h"
 
 typedef struct state_context {
     level_t* level;
     player_t* player;
     machine_t* machine;
-    game_controller_t* controller;
+    joystick_t* joystick;
 } state_context_t;
 
 typedef bool (*state_machine_callback_t)(state_context_t*);

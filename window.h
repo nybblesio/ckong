@@ -22,7 +22,7 @@
 #define SCREEN_WIDTH (256)
 #define SCREEN_HEIGHT (256)
 
-typedef struct window {
+typedef struct {
     bool valid;
     uint32_t x;
     uint32_t y;
@@ -30,10 +30,10 @@ typedef struct window {
     uint32_t height;
     uint32_t scale_x;
     uint32_t scale_y;
+    ll_node_t* messages;
     struct SDL_Window* window;
     struct SDL_Surface* surface;
     struct SDL_Texture* texture;
-    linked_list_node_t* messages;
     struct SDL_Renderer* renderer;
 } window_t;
 

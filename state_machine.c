@@ -14,15 +14,11 @@
 #include "log.h"
 #include "game.h"
 #include "tile.h"
-#include "level.h"
 #include "actor.h"
 #include "video.h"
-#include "player.h"
-#include "machine.h"
 #include "palette.h"
 #include "keyboard.h"
 #include "state_machine.h"
-#include "game_controller.h"
 
 static const color_t s_green = {0x00, 0xee, 0x00, 0xff};
 static const color_t s_black = {0x00, 0x00, 0x00, 0xff};
@@ -257,7 +253,7 @@ static bool boot_enter(state_context_t* context) {
     s_boot_state.delay = 2;
     s_boot_state.palette = 0;
 
-    video_fill_bg(s_boot_state.tile, s_boot_state.palette);
+    video_bg_fill(s_boot_state.tile, s_boot_state.palette);
     return true;
 }
 
@@ -274,7 +270,7 @@ static bool boot_update(state_context_t* context) {
             state_push(context, state_insert_coin);
             return true;
         }
-        video_fill_bg(s_boot_state.tile, s_boot_state.palette);
+        video_bg_fill(s_boot_state.tile, s_boot_state.palette);
     }
     return true;
 }
@@ -306,12 +302,12 @@ static bool credit_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool insert_coin_enter(state_context_t* context) {
-    video_set_bg(tile_map_index(0));
+    video_bg_set(tile_map(0));
     return true;
 }
 
 static bool insert_coin_update(state_context_t* context) {
-    if (game_controller_button_pressed(context->controller, button_x)) {
+    if (joystick_button_pressed(context->joystick, button_x)) {
         state_push(context, state_editor);
     }
     return true;
@@ -344,7 +340,7 @@ static bool title_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool game_screen_1_enter(state_context_t* context) {
-    video_set_bg(tile_map(tile_map_introduction));
+    video_bg_set(tile_map(tile_map_introduction));
 
     actor_t* oil_barrel = actor(actor_oil_barrel);
     oil_barrel->flags |= f_actor_enabled;
@@ -386,21 +382,21 @@ static bool game_screen_1_update(state_context_t* context) {
     bool is_climbing = (mario->data1 & mario_climb) != 0
                        || (mario->data1 & mario_climb_end) != 0;
 
-    if (game_controller_button(context->controller, button_dpad_right)
+    if (joystick_button(context->joystick, button_dpad_right)
         &&  !is_climbing) {
         if (mario->x < 224)
             mario->x += 2;
         mario->data1 &= ~mario_left;
         mario->data1 |= mario_right | mario_run;
         actor_animation(mario, anim_mario_walk_right);
-    } else if (game_controller_button(context->controller, button_dpad_left)
+    } else if (joystick_button(context->joystick, button_dpad_left)
                && !is_climbing) {
         if (mario->x > 16)
             mario->x -= 2;
         mario->data1 &= ~mario_right;
         mario->data1 |= mario_left | mario_run;
         actor_animation(mario, anim_mario_walk_left);
-    } else if (game_controller_button(context->controller, button_dpad_up)) {
+    } else if (joystick_button(context->joystick, button_dpad_up)) {
         // is mario over a ladder?
         //
         // first, we compute mario's position within the background tile map
@@ -422,8 +418,8 @@ static bool game_screen_1_update(state_context_t* context) {
         mario->data1 &= ~mario_run;
     }
 
-    if (game_controller_button(context->controller, button_a)
-        &&  (mario->data1 & mario_jump) == 0) {
+    if (joystick_button(context->joystick, button_a)
+    &&  (mario->data1 & mario_jump) == 0) {
         mario->data1 |= mario_jump;
         mario->data2 = 20;
     }
@@ -554,7 +550,7 @@ static bool high_score_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool long_introduction_enter(state_context_t* context) {
-    video_set_bg(tile_map(tile_map_introduction));
+    video_bg_set(tile_map(tile_map_introduction));
 
     actor_t* donkey_kong = actor(actor_donkey_kong);
     donkey_kong->x = 124;
@@ -747,7 +743,7 @@ static bool editor_enter(state_context_t* context) {
     if (s_tile_editor.active) {
         switch (s_tile_editor.action) {
             case editor_action_save: {
-                copy_bg(tile_map_index(s_tile_editor.index));
+                copy_bg(tile_map(s_tile_editor.index));
                 tile_map_save();
                 show_message(120, "ckong.dat saved");
                 break;
@@ -758,7 +754,7 @@ static bool editor_enter(state_context_t* context) {
                 break;
             }
             case editor_action_fill_map: {
-                video_fill_bg(s_tile_editor.tile.value, s_tile_editor.palette.value);
+                video_bg_fill(s_tile_editor.tile.value, s_tile_editor.palette.value);
                 show_message(120, "tile map filled");
                 break;
             }
@@ -815,7 +811,7 @@ static bool editor_enter(state_context_t* context) {
     s_tile_editor.copy_buffer = NULL;
 
     log_message(category_app, "tile map index: %d", s_tile_editor.index);
-    video_set_bg(tile_map_index(s_tile_editor.index));
+    video_bg_set(tile_map(s_tile_editor.index));
     s_tile_editor.active = true;
 
     return true;
@@ -824,7 +820,7 @@ static bool editor_enter(state_context_t* context) {
 static bool editor_update(state_context_t* context) {
     bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
 
-    if (game_controller_button_pressed(context->controller, button_x)) {
+    if (joystick_button_pressed(context->joystick, button_x)) {
         state_push(context, state_editor_pick_tile);
         return true;
     }
@@ -997,13 +993,13 @@ static bool editor_update(state_context_t* context) {
         block->flags |= f_bg_changed;
     }
 
-    if (game_controller_button_pressed(context->controller, button_y)
+    if (joystick_button_pressed(context->joystick, button_y)
     && !s_tile_editor.text_entry) {
         state_push(context, state_editor_pick_palette);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_a)
+    if (joystick_button_pressed(context->joystick, button_a)
     && !s_tile_editor.text_entry
     && !s_tile_editor.select_range) {
         bg_control_block_t* block = video_tile(s_tile_editor.y, s_tile_editor.x);
@@ -1015,55 +1011,55 @@ static bool editor_update(state_context_t* context) {
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_guide)) {
+    if (joystick_button_pressed(context->joystick, button_guide)) {
         state_push(context, state_editor_menu);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_back)) {
+    if (joystick_button_pressed(context->joystick, button_back)) {
         if (!s_tile_editor.text_entry) {
-            copy_bg(tile_map_index(s_tile_editor.index));
+            copy_bg(tile_map(s_tile_editor.index));
             s_tile_editor.active = false;
             state_pop(context);
         }
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_up)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_up)) {
         const uint8_t min_y = s_tile_editor.select_range ? s_copy_range.y1 : 0;
         if (s_tile_editor.y > min_y)
             s_tile_editor.y--;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_down)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_down)) {
         if (s_tile_editor.y < TILE_MAP_HEIGHT - 1)
             s_tile_editor.y++;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_left)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_left)) {
         const uint8_t min_x = s_tile_editor.select_range ? s_copy_range.x1 : 0;
         if (s_tile_editor.x > min_x)
             s_tile_editor.x--;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_right)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_right)) {
         if (s_tile_editor.x < TILE_MAP_WIDTH - 1)
             s_tile_editor.x++;
     }
 
-    if (game_controller_button_pressed(context->controller, button_left_shoulder)) {
+    if (joystick_button_pressed(context->joystick, button_left_shoulder)) {
         if (s_tile_editor.index > 0) {
-            copy_bg(tile_map_index(s_tile_editor.index));
+            copy_bg(tile_map(s_tile_editor.index));
             s_tile_editor.index--;
-            video_set_bg(tile_map_index(s_tile_editor.index));
+            video_bg_set(tile_map(s_tile_editor.index));
         }
     }
 
-    if (game_controller_button_pressed(context->controller, button_right_shoulder)) {
+    if (joystick_button_pressed(context->joystick, button_right_shoulder)) {
         if (s_tile_editor.index < TILE_MAP_MAX - 1) {
-            copy_bg(tile_map_index(s_tile_editor.index));
+            copy_bg(tile_map(s_tile_editor.index));
             s_tile_editor.index++;
-            video_set_bg(tile_map_index(s_tile_editor.index));
+            video_bg_set(tile_map(s_tile_editor.index));
         }
     }
 
@@ -1096,22 +1092,22 @@ static bool editor_menu_enter(state_context_t* context) {
 }
 
 static bool editor_menu_update(state_context_t* context) {
-    if (game_controller_button_pressed(context->controller, button_a)) {
+    if (joystick_button_pressed(context->joystick, button_a)) {
         state_pop(context);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_back)) {
+    if (joystick_button_pressed(context->joystick, button_back)) {
         state_pop(context);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_up)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_up)) {
         if (s_tile_editor.action > 0)
             s_tile_editor.action--;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_down)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_down)) {
         if (s_tile_editor.action < editor_action_exit)
             s_tile_editor.action++;
     }
@@ -1161,23 +1157,23 @@ static bool editor_pick_tile_enter(state_context_t* context) {
 static bool editor_pick_tile_update(state_context_t* context) {
     grid_value_t* tile = &s_tile_editor.tile;
 
-    if (game_controller_button_pressed(context->controller, button_a)) {
+    if (joystick_button_pressed(context->joystick, button_a)) {
         state_pop(context);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_back)) {
+    if (joystick_button_pressed(context->joystick, button_back)) {
         *tile = s_tile_undo;
         state_pop(context);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_up)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_up)) {
         if (tile->y > 0)
             tile->y--;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_down)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_down)) {
         if (tile->y < 15)
             tile->y++;
 
@@ -1186,23 +1182,23 @@ static bool editor_pick_tile_update(state_context_t* context) {
             tile->x = max_x;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_left)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_left)) {
         if (tile->x > 0)
             tile->x--;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_right)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_right)) {
         const uint16_t max_x = s_tile_editor.tile.y == 15 ? 11 : 15;
         if (tile->x < max_x)
             tile->x++;
     }
 
-    if (game_controller_button_pressed(context->controller, button_left_shoulder)) {
+    if (joystick_button_pressed(context->joystick, button_left_shoulder)) {
         if (s_tile_editor.palette.value > 0)
             s_tile_editor.palette.value--;
     }
 
-    if (game_controller_button_pressed(context->controller, button_right_shoulder)) {
+    if (joystick_button_pressed(context->joystick, button_right_shoulder)) {
         if (s_tile_editor.palette.value < PALETTE_MAX - 1)
             s_tile_editor.palette.value++;
     }
@@ -1226,8 +1222,9 @@ static bool editor_pick_tile_update(state_context_t* context) {
         s_white,
         (box.top + box.height) - 10,
         box.left + 5,
-        "Palette:%02X",
-        s_tile_editor.palette.value);
+        "P:%02X T:%02X",
+        s_tile_editor.palette.value,
+        s_tile_editor.tile.value);
     video_hline(s_white, box.top + 12, box.left, box.width);
 
     const uint16_t left_edge = box.left + 16;
@@ -1264,33 +1261,33 @@ static bool editor_pick_palette_enter(state_context_t* context) {
 static bool editor_pick_palette_update(state_context_t* context) {
     grid_value_t* pal = &s_tile_editor.palette;
 
-    if (game_controller_button_pressed(context->controller, button_a)) {
+    if (joystick_button_pressed(context->joystick, button_a)) {
         state_pop(context);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_back)) {
+    if (joystick_button_pressed(context->joystick, button_back)) {
         *pal = s_palette_undo;
         state_pop(context);
         return true;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_up)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_up)) {
         if (pal->y > 0)
             pal->y--;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_down)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_down)) {
         if (pal->y < 15)
             pal->y++;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_left)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_left)) {
         if (pal->x > 0)
             pal->x--;
     }
 
-    if (game_controller_button_pressed(context->controller, button_dpad_right)) {
+    if (joystick_button_pressed(context->joystick, button_dpad_right)) {
         if (pal->x < 3)
             pal->x++;
     }

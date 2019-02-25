@@ -16,4 +16,6 @@ struct SDL_Window;
 struct SDL_Surface;
 struct SDL_Renderer;
 struct SDL_Texture;
+struct _SDL_GameController;
+
 enum SDL_Scancode;

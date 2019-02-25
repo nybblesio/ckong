@@ -19,8 +19,8 @@
 #include "str.h"
 #include "game.h"
 
-void log_messages(linked_list_node_t* node) {
-    linked_list_node_t* current_node = node;
+void log_messages(ll_node_t* node) {
+    ll_node_t* current_node = node;
     while (current_node != NULL) {
         if (current_node->data != NULL) {
             str_print((const str_t*) current_node->data, stderr);

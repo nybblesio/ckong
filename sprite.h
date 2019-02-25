@@ -20,7 +20,7 @@
 #define SPRITE_SIZE (SPRITE_HEIGHT * SPRITE_WIDTH)
 #define SPRITE_MAX (128)
 
-typedef struct sprite_bitmap {
+typedef struct {
     uint8_t data[SPRITE_SIZE];
 } sprite_bitmap_t;
 

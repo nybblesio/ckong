@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-typedef struct str {
+typedef struct {
     uint16_t len;
     uint16_t pos;
     uint8_t* data;

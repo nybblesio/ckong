@@ -67,9 +67,9 @@ add_executable(
         machine.c machine.h
         tile_map.c tile_map.h
         keyboard.c keyboard.h
+        joystick.c joystick.h
         linked_list.c linked_list.h
-        state_machine.c state_machine.h
-        game_controller.c game_controller.h)
+        state_machine.c state_machine.h)
 
 target_link_libraries(
         ckong

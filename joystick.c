@@ -13,19 +13,19 @@
 #include <assert.h>
 #include <SDL_system.h>
 #include <SDL_gamecontroller.h>
-#include "game_controller.h"
+#include "joystick.h"
 
 static uint16_t s_button_state = 0;
 static const Uint8* s_keyboard_state;
 
-bool game_controller_button(
-        game_controller_t* controller,
-        game_controller_button_t button) {
+bool joystick_button(
+        joystick_t* joy,
+        joystick_button_t button) {
     bool button_pressed = false;
 
-    if (controller->controller != NULL) {
+    if (joy->controller != NULL) {
         button_pressed = SDL_GameControllerGetButton(
-            controller->controller,
+            joy->controller,
             (SDL_GameControllerButton) button) != 0;
     }
 
@@ -82,12 +82,12 @@ bool game_controller_button(
     return button_pressed;
 }
 
-bool game_controller_button_pressed(
-        game_controller_t* controller,
-        game_controller_button_t button) {
+bool joystick_button_pressed(
+        joystick_t* joy,
+        joystick_button_t button) {
     const uint32_t bit_mask = (uint32_t)1 << (uint32_t)button;
     for (int8_t i = 0; i < 32; i++) {
-        bool pressed = game_controller_button(controller, button);
+        bool pressed = joystick_button(joy, button);
         if (pressed) {
             if ((s_button_state & bit_mask) == 0) {
                 s_button_state |= bit_mask;
@@ -102,39 +102,39 @@ bool game_controller_button_pressed(
     return false;
 }
 
-game_controller_t* game_controller_open() {
+joystick_t* joystick_open() {
     s_keyboard_state = SDL_GetKeyboardState(NULL);
 
-    game_controller_t* controller = malloc(sizeof(game_controller_t));
-    controller->index = -1;
-    controller->name = NULL;
-    controller->mapping = NULL;
-    controller->controller = NULL;
+    joystick_t* joy = malloc(sizeof(joystick_t));
+    joy->index = -1;
+    joy->name = NULL;
+    joy->mapping = NULL;
+    joy->controller = NULL;
 
     int32_t number_of_joysticks = SDL_NumJoysticks();
     for (int32_t i = 0; i < number_of_joysticks; ++i) {
         if (SDL_IsGameController(i) == SDL_TRUE) {
-            controller->index = i;
-            controller->controller = SDL_GameControllerOpen(i);
-            controller->name = SDL_GameControllerNameForIndex(i);
-            controller->mapping = SDL_GameControllerMappingForIndex(i);
+            joy->index = i;
+            joy->controller = SDL_GameControllerOpen(i);
+            joy->name = SDL_GameControllerNameForIndex(i);
+            joy->mapping = SDL_GameControllerMappingForIndex(i);
             break;
         }
     }
 
-    return controller;
+    return joy;
 }
 
-void game_controller_close(game_controller_t* controller) {
-    if (controller == NULL)
+void joystick_close(joystick_t* joy) {
+    if (joy == NULL)
         return;
 
-    if (controller->controller != NULL)
-        SDL_GameControllerClose(controller->controller);
+    if (joy->controller != NULL)
+        SDL_GameControllerClose(joy->controller);
 
-    if (controller->mapping != NULL)
-        SDL_free((void*) controller->mapping);
+    if (joy->mapping != NULL)
+        SDL_free((void*) joy->mapping);
 
-    if (controller->name != NULL)
-        SDL_free((void*) controller->name);
+    if (joy->name != NULL)
+        SDL_free((void*) joy->name);
 }
