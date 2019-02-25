@@ -302,7 +302,7 @@ static bool credit_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool insert_coin_enter(state_context_t* context) {
-    video_bg_set(tile_map(0));
+    video_bg_set(tile_map(tile_map_insert_coin));
     return true;
 }
 
@@ -1118,7 +1118,7 @@ static bool editor_menu_update(state_context_t* context) {
         .width = 128,
         .height = 128
     };
-    video_fill_rect(s_black, box);
+    video_fill_rect(s_grey, box);
     video_rect(s_white, box);
     video_text(
         s_white,

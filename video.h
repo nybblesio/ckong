@@ -16,8 +16,8 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include "fwd.h"
-#include "tile_map.h"
 #include "window.h"
+#include "tile_map.h"
 
 #define PRE_COMMANDS_MAX (1024)
 #define POST_COMMANDS_MAX (256)
