@@ -43,17 +43,25 @@ static spr_control_block_t s_spr_control[SPRITE_MAX];
 static bg_control_block_t s_bg_control[TILE_MAP_SIZE];
 
 void video_bg_str(
-        const char* str,
         uint8_t y,
         uint8_t x,
         uint8_t palette,
-        bool enabled) {
-    assert(str != NULL);
+        bool enabled,
+        const char* fmt,
+        ...) {
+    assert(fmt != NULL);
 
-    size_t length = strlen(str);
+    char buffer[33];
+
+    va_list list;
+    va_start(list, fmt);
+    vsnprintf(buffer, 33, fmt, list);
+    va_end(list);
+
+    size_t length = strlen(buffer);
     for (uint8_t i = 0; i < length; i++) {
         bg_control_block_t* block = video_tile(y, x + i);
-        uint8_t c = (uint8_t) str[i];
+        uint8_t c = (uint8_t) buffer[i];
         if (c == 0x20) {
             block->tile = 0x0a;
             block->palette = 0x0f;

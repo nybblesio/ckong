@@ -152,11 +152,12 @@ typedef struct {
 } vid_post_command_t;
 
 void video_bg_str(
-    const char* str,
     uint8_t y,
     uint8_t x,
     uint8_t palette,
-    bool enabled);
+    bool enabled,
+    const char* fmt,
+    ...);
 
 void video_shutdown(void);
 

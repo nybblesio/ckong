@@ -307,9 +307,39 @@ static bool insert_coin_enter(state_context_t* context) {
 }
 
 static bool insert_coin_update(state_context_t* context) {
+    machine_t* machine = context->machine;
     if (joystick_button_pressed(context->joystick, button_x)) {
         state_push(context, state_editor);
+        return true;
     }
+
+    if (key_pressed(SDL_SCANCODE_1)) {
+        if (machine->credits[0] < 0xff) {
+            machine->credits[0]++;
+        }
+    }
+
+    if (key_pressed(SDL_SCANCODE_2)) {
+        if (machine->credits[1] < 0xff) {
+            machine->credits[1]++;
+        }
+    }
+
+    if (joystick_button_pressed(context->joystick, button_start)
+    &&  context->machine->credits > 0) {
+        state_pop(context);
+        state_push(context, state_how_high);
+        return true;
+    }
+
+    video_bg_str(
+        31,
+        27,
+        3,
+        true,
+        "%02d",
+        machine->credits[0] + machine->credits[1]);
+
     return true;
 }
 
@@ -340,7 +370,7 @@ static bool title_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool game_screen_1_enter(state_context_t* context) {
-    video_bg_set(tile_map(tile_map_introduction));
+    video_bg_set(tile_map(tile_map_game_screen_2));
 
     actor_t* oil_barrel = actor(actor_oil_barrel);
     oil_barrel->flags |= f_actor_enabled;
@@ -515,11 +545,78 @@ static bool game_screen_4_leave(state_context_t* context) {
 // How High? State
 //
 // ----------------------------------------------------------------------------
+typedef struct {
+    int8_t level;
+    uint8_t stage;
+    uint8_t row;
+} level_elevation_t;
+
+static uint8_t s_how_high_frames = 60 * 3;
+
+static level_elevation_t s_level_elevations[] = {
+    {1, 1, 25}, // level 1, stage 1
+    {1, 2, 21}, // level 1, stage 2
+
+    {2, 1, 25}, // level 2, stage 1
+    {2, 2, 21}, // level 2, stage 2
+    {2, 3, 17}, // level 2, stage 3
+
+    {3, 1, 25}, // level 3, stage 1
+    {3, 2, 21}, // level 3, stage 2
+    {3, 3, 17}, // level 3, stage 3
+    {3, 4, 13}, // level 3, stage 4
+
+    {4, 1, 25}, // level 4, stage 1
+    {4, 2, 21}, // level 4, stage 2
+    {4, 3, 17}, // level 4, stage 3
+    {4, 4, 13}, // level 4, stage 4
+    {4, 5,  9}, // level 4, stage 5
+
+    {-1, 0, 0}  // end
+};
+
+static const level_elevation_t* elevation(const player_t* player) {
+    for (uint8_t i = 0; ; i++) {
+        const level_elevation_t* e = &s_level_elevations[i];
+        if (e->level == -1)
+            break;
+        if (e->level == player->level
+        &&  e->stage == player->stage) {
+            return e;
+        }
+    }
+    return NULL;
+}
+
 static bool how_high_enter(state_context_t* context) {
+    video_bg_set(tile_map(tile_map_how_high));
+    s_how_high_frames = 60 * 3;
+
+    player_t* player = context->player;
+    player->level = 4;
+    player->stage = 5;
+
+    const level_elevation_t* e = elevation(player);
+    if (e != NULL) {
+        for (uint8_t y = 5; y < e->row; y++) {
+            for (uint8_t x = 7; x < 20; x++) {
+                bg_control_block_t* block = video_tile(y, x);
+                block->flags &= ~f_bg_enabled | f_bg_changed;
+            }
+        }
+    }
+
     return true;
 }
 
 static bool how_high_update(state_context_t* context) {
+    if (s_how_high_frames > 0) {
+        s_how_high_frames--;
+    } else {
+        state_pop(context);
+        // XXX: the next state is based on level/stage
+        state_push(context, state_game_screen_1);
+    }
     return true;
 }
 

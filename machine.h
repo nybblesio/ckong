@@ -20,7 +20,7 @@ typedef struct {
 } high_score_t;
 
 typedef struct {
-    uint8_t credits;
+    uint8_t credits[2];
     uint32_t high_score;
     high_score_t score_history[5];
 } machine_t;

@@ -19,6 +19,7 @@
 typedef struct {
     uint8_t lives;
     uint8_t level;
+    uint8_t stage;
     uint32_t score;
 } player_t;
 

@@ -39,7 +39,7 @@ level_t* level(uint8_t number) {
 
 void level_header_update(void) {
     unsigned char buffer[4] = {0xed, 0xee, 0xef, 0x00};
-    video_bg_str((const char*) &buffer[0], 4, 15, 6, false);
+    video_bg_str(4, 15, 6, false, (const char*) &buffer[0]);
     video_bg_blink(
         4,
         15,

@@ -23,7 +23,8 @@ static machine_file_t s_file;
 
 void machine_init(void) {
     strncpy(s_file.header, "CKONG11*", 8);
-    s_file.machine.credits = 0;
+    s_file.machine.credits[0] = 0;
+    s_file.machine.credits[1] = 0;
     s_file.machine.high_score = 0;
 }
 
@@ -48,8 +49,6 @@ machine_t* machine(void) {
 }
 
 void machine_header_update(void) {
-    video_bg_str("HIGH SCORE", 0, 11, 0, true);
-    char buffer[7];
-    snprintf(&buffer[0], 7, "%06d", s_file.machine.high_score);
-    video_bg_str(buffer, 1, 13, 1, true);
+    video_bg_str(0, 11, 0, true, "HIGH SCORE");
+    video_bg_str(1, 13, 1, true, "%06d", s_file.machine.high_score);
 }
