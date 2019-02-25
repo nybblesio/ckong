@@ -1169,8 +1169,8 @@ static bool editor_update(state_context_t* context) {
         rect_t rect = {
             .left = s_copy_range.x1 * TILE_WIDTH,
             .top = s_copy_range.y1 * TILE_HEIGHT,
-            .width = ((s_tile_editor.x - s_copy_range.x1) + 1) * TILE_WIDTH,
-            .height = ((s_tile_editor.y - s_copy_range.y1) + 1) * TILE_HEIGHT
+            .width = (((s_tile_editor.x - s_copy_range.x1) + 1) * TILE_WIDTH) - 1,
+            .height = (((s_tile_editor.y - s_copy_range.y1) + 1) * TILE_HEIGHT) - 1
         };
         video_rect(s_green, rect);
     }
