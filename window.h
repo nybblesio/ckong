@@ -37,4 +37,4 @@ typedef struct {
     struct SDL_Renderer* renderer;
 } window_t;
 
-window_t window_create();
+window_t window_create(int32_t y, int32_t x);

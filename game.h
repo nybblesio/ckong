@@ -24,6 +24,15 @@ typedef struct  {
     joystick_t* joystick;
 } game_context_t;
 
+typedef struct {
+    int32_t win_x;
+    int32_t win_y;
+} config_t;
+
+bool game_config_load();
+
+const config_t* game_config();
+
 game_context_t* game_context_new();
 
 bool game_run(game_context_t* context);
@@ -31,3 +40,5 @@ bool game_run(game_context_t* context);
 bool game_init(game_context_t* context);
 
 void game_shutdown(game_context_t* context);
+
+bool game_config_save(const game_context_t* context);

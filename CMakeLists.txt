@@ -43,11 +43,10 @@ add_subdirectory(ext/SDL2_ttf-2.0.14)
 include_directories(ext/SDL2_ttf-2.0.14)
 
 # SDL_FontCache
-add_library(
-        SDL_FontCache
-        ext/SDL_FontCache/SDL_FontCache.c
-        ext/SDL_FontCache/SDL_FontCache.h)
 include_directories(ext/SDL_FontCache)
+
+# inih
+include_directories(ext/inih-42)
 
 add_executable(
         ckong
@@ -69,11 +68,13 @@ add_executable(
         keyboard.c keyboard.h
         joystick.c joystick.h
         linked_list.c linked_list.h
-        state_machine.c state_machine.h)
+        state_machine.c state_machine.h
+
+        ext/inih-42/ini.c ext/inih-42/ini.h
+        ext/SDL_FontCache/SDL_FontCache.c ext/SDL_FontCache/SDL_FontCache.h)
 
 target_link_libraries(
         ckong
-        SDL_FontCache
         SDL2_ttf
         SDL2-static)
 

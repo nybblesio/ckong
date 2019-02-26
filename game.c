@@ -11,6 +11,8 @@
 // --------------------------------------------------------------------------
 
 #include <SDL.h>
+#include <ini.h>
+#include <unistd.h>
 #include "str.h"
 #include "log.h"
 #include "game.h"
@@ -22,6 +24,11 @@
 #include "joystick.h"
 #include "state_machine.h"
 
+static config_t s_config = {
+    .win_x = -1,
+    .win_y = -1
+};
+
 static bool s_show_fps = true;
 
 static state_context_t s_state_context = {
@@ -30,6 +37,38 @@ static state_context_t s_state_context = {
     .level = NULL,
     .joystick = NULL
 };
+
+#define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+
+static int config_handler(
+        void* user,
+        const char* section,
+        const char* name,
+        const char* value) {
+    config_t* config = (config_t*) user;
+
+    if (MATCH("window", "x")) {
+        config->win_x = atoi(value);
+    } else if (MATCH("window", "y")) {
+        config->win_y = atoi(value);
+    } else {
+        return 0;
+    }
+
+    return 1;
+}
+
+bool game_config_load() {
+    if (access("ckong.ini", F_OK) == -1) {
+        log_warn(category_app, "ckong.ini file is missing; not loading.");
+        return true;
+    }
+    return ini_parse("ckong.ini", config_handler, &s_config) == 0;
+}
+
+const config_t* game_config() {
+    return &s_config;
+}
 
 static bool should_quit(void) {
     SDL_Event e;
@@ -105,6 +144,8 @@ bool game_run(game_context_t* context) {
 }
 
 bool game_init(game_context_t* context) {
+    game_config_load();
+
     log_message(category_app, "SDL_Init all the things.");
     int sdl_result = SDL_Init(SDL_INIT_EVERYTHING);
     if (sdl_result < 0) {
@@ -113,7 +154,7 @@ bool game_init(game_context_t* context) {
     }
 
     log_message(category_app, "Create application window.");
-    context->window = window_create();
+    context->window = window_create(s_config.win_y, s_config.win_x);
     if (!context->window.valid) {
         return false;
     }
@@ -146,6 +187,11 @@ void game_shutdown(game_context_t* context) {
     log_message(category_app, "pop last state from stack.");
     state_pop(&s_state_context);
 
+    log_message(category_app, "save game config.");
+    if (!game_config_save(context)) {
+        log_error(category_app, "unable to save game config.");
+    }
+
     if (context == NULL)
         return;
 
@@ -172,4 +218,20 @@ void game_shutdown(game_context_t* context) {
 
     if (context->messages != NULL)
         ll_free(context->messages);
+}
+
+bool game_config_save(const game_context_t* context) {
+    int x, y;
+    SDL_GetWindowPosition(context->window.window, &x, &y);
+
+    FILE* file = fopen("ckong.ini", "wt");
+    if (file != NULL) {
+        fprintf(file, "; CKong config file\n\n");
+        fprintf(file, "[window]\n");
+        fprintf(file, "x = %d\n", x);
+        fprintf(file, "y = %d\n", y);
+        return true;
+    }
+
+    return false;
 }
