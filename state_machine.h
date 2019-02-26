@@ -22,6 +22,7 @@
 
 typedef struct state_context {
     level_t* level;
+    uint32_t ticks;
     player_t* player;
     machine_t* machine;
     joystick_t* joystick;

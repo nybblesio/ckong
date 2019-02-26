@@ -86,13 +86,13 @@ bg_blinker_t* video_bg_blink(
         uint8_t x,
         uint8_t h,
         uint8_t w,
+        uint32_t ticks,
         uint32_t duration,
         bg_blinker_callback callback) {
     assert(s_current_blinker < BLINKERS_MAX);
 
     bg_blinker_t* blinker = &s_blinkers[s_current_blinker++];
 
-    uint32_t ticks = SDL_GetTicks();
     rect_t bounds = {
         .left = x,
         .top = y,
@@ -210,9 +210,7 @@ static bool video_draw_tile(
     return true;
 }
 
-static void video_bg_update() {
-    uint32_t ticks = SDL_GetTicks();
-
+static void video_bg_update(uint32_t ticks) {
     for (uint32_t i = 0; i < s_current_blinker; i++) {
         bg_blinker_t* blinker = &s_blinkers[i];
         if (blinker->duration > 0) {
@@ -220,7 +218,7 @@ static void video_bg_update() {
                 bool blinker_result = true;
 
                 if (blinker->callback != NULL) {
-                    blinker_result = blinker->callback(blinker);
+                    blinker_result = blinker->callback(blinker, ticks);
                 }
 
                 if (blinker_result) {
@@ -295,7 +293,7 @@ static void video_bg_update() {
     SDL_BlitSurface(s_bg_surface, NULL, s_fg_surface, NULL);
 }
 
-static void video_fg_update() {
+static void video_fg_update(uint32_t ticks) {
     for (uint32_t i = 0; i < SPRITE_MAX; i++) {
         spr_control_block_t* block = &s_spr_control[i];
 
@@ -336,7 +334,7 @@ static void hline(uint16_t y, uint16_t x, uint16_t w, color_t* color) {
     }
 }
 
-static void video_pre_commands() {
+static void video_pre_commands(uint32_t ticks) {
     for (uint16_t i = 0; i < s_current_pre_command; i++) {
         vid_pre_command_t* cmd = &s_pre_commands[i];
         switch (cmd->type) {
@@ -400,7 +398,7 @@ static void video_pre_commands() {
     s_current_pre_command = 0;
 }
 
-static void video_post_commands(struct SDL_Renderer* renderer) {
+static void video_post_commands(struct SDL_Renderer* renderer, uint32_t ticks) {
     for (uint16_t i = 0; i < s_current_post_command; i++) {
         vid_post_command_t* cmd = &s_post_commands[i];
         switch (cmd->type) {
@@ -467,12 +465,12 @@ void video_init(struct SDL_Renderer* renderer) {
         TTF_STYLE_NORMAL);
 }
 
-void video_update(window_t* window) {
-    video_bg_update();
+void video_update(window_t* window, uint32_t ticks) {
+    video_bg_update(ticks);
 
     SDL_LockSurface(s_fg_surface);
-    video_fg_update();
-    video_pre_commands();
+    video_fg_update(ticks);
+    video_pre_commands(ticks);
     SDL_UnlockSurface(s_fg_surface);
 
     SDL_UpdateTexture(
@@ -487,7 +485,7 @@ void video_update(window_t* window) {
         NULL,
         NULL);
 
-    video_post_commands(window->renderer);
+    video_post_commands(window->renderer, ticks);
 
     SDL_RenderPresent(window->renderer);
 }

@@ -19,6 +19,7 @@
 #include "palette.h"
 #include "keyboard.h"
 #include "state_machine.h"
+#include "timer.h"
 
 static const color_t s_green = {0x00, 0xee, 0x00, 0xff};
 static const color_t s_black = {0x00, 0x00, 0x00, 0xff};
@@ -243,35 +244,40 @@ static bool bonus_animation_callback(actor_t* actor) {
 typedef struct {
     uint16_t tile;
     uint8_t palette;
-    uint16_t delay;
+    timer_t* timer;
 } boot_state_t;
 
 static boot_state_t s_boot_state;
 
+static bool boot_timer_callback(timer_t* timer, uint32_t ticks) {
+    if (s_boot_state.palette < 64) {
+        s_boot_state.palette += 2;
+        return true;
+    } else {
+        state_context_t* context = (state_context_t*) timer->user;
+
+        state_pop(context);
+        state_push(context, state_insert_coin);
+
+        s_boot_state.timer = NULL;
+
+        return false;
+    }
+}
+
 static bool boot_enter(state_context_t* context) {
     s_boot_state.tile = 77;
-    s_boot_state.delay = 2;
     s_boot_state.palette = 0;
-
-    video_bg_fill(s_boot_state.tile, s_boot_state.palette);
+    s_boot_state.timer = timer_start(
+        context->ticks,
+        17,
+        boot_timer_callback,
+        context);
     return true;
 }
 
 static bool boot_update(state_context_t* context) {
-    if (s_boot_state.delay > 0) {
-        s_boot_state.delay--;
-    } else {
-        s_boot_state.delay = 2;
-
-        if (s_boot_state.palette < 64) {
-            s_boot_state.palette += 2;
-        } else {
-            state_pop(context);
-            state_push(context, state_insert_coin);
-            return true;
-        }
-        video_bg_fill(s_boot_state.tile, s_boot_state.palette);
-    }
+    video_bg_fill(s_boot_state.tile, s_boot_state.palette);
     return true;
 }
 
@@ -390,17 +396,17 @@ static bool game_screen_1_enter(state_context_t* context) {
     bonus->data1 = 4;
     bonus->flags |= f_actor_enabled;
     bonus->animation_callback = bonus_animation_callback;
-    actor_animation(bonus, anim_bonus_100);
+    actor_animation(bonus, anim_bonus_100, context->ticks);
 
     actor_t* pauline = actor(actor_pauline);
     pauline->x = 104;
     pauline->y = 43;
-    actor_animation(pauline, anim_pauline_stand_right);
+    actor_animation(pauline, anim_pauline_stand_right, context->ticks);
     pauline->flags |= f_actor_enabled;
 
     machine_header_update();
-    player1_header_update();
-    level_header_update();
+    player1_header_update(context->ticks);
+    level_header_update(context->ticks);
 
     return true;
 }
@@ -418,14 +424,14 @@ static bool game_screen_1_update(state_context_t* context) {
             mario->x += 2;
         mario->data1 &= ~mario_left;
         mario->data1 |= mario_right | mario_run;
-        actor_animation(mario, anim_mario_walk_right);
+        actor_animation(mario, anim_mario_walk_right, context->ticks);
     } else if (joystick_button(context->joystick, button_dpad_left)
                && !is_climbing) {
         if (mario->x > 16)
             mario->x -= 2;
         mario->data1 &= ~mario_right;
         mario->data1 |= mario_left | mario_run;
-        actor_animation(mario, anim_mario_walk_left);
+        actor_animation(mario, anim_mario_walk_left, context->ticks);
     } else if (joystick_button(context->joystick, button_dpad_up)) {
         // is mario over a ladder?
         //
@@ -472,14 +478,16 @@ static bool game_screen_1_update(state_context_t* context) {
         else {
             actor_animation(
                 mario,
-                dir == 2 ? anim_mario_jump_right : anim_mario_jump_left);
+                dir == 2 ? anim_mario_jump_right : anim_mario_jump_left,
+                context->ticks);
         }
     } else if (is_climbing) {
-        actor_animation(mario, anim_mario_climb);
+        actor_animation(mario, anim_mario_climb, context->ticks);
     } else if ((mario->data1 & mario_run) == 0) {
         actor_animation(
             mario,
-            dir == 2 ? anim_mario_stand_right : anim_mario_stand_left);
+            dir == 2 ? anim_mario_stand_right : anim_mario_stand_left,
+            context->ticks);
     }
 
     return true;
@@ -551,7 +559,7 @@ typedef struct {
     uint8_t row;
 } level_elevation_t;
 
-static uint8_t s_how_high_frames = 60 * 3;
+static timer_t* s_how_high_duration = NULL;
 
 static level_elevation_t s_level_elevations[] = {
     {1, 1, 25}, // level 1, stage 1
@@ -588,9 +596,20 @@ static const level_elevation_t* elevation(const player_t* player) {
     return NULL;
 }
 
+static bool how_high_timer_callback(timer_t* timer, uint32_t ticks) {
+    s_how_high_duration = NULL;
+
+    state_context_t* context = (state_context_t*) timer->user;
+
+    state_pop(context);
+    // XXX: the next state is based on level/stage
+    state_push(context, state_game_screen_1);
+
+    return false;
+}
+
 static bool how_high_enter(state_context_t* context) {
     video_bg_set(tile_map(tile_map_how_high));
-    s_how_high_frames = 60 * 3;
 
     player_t* player = context->player;
     player->level = 4;
@@ -606,17 +625,16 @@ static bool how_high_enter(state_context_t* context) {
         }
     }
 
+    s_how_high_duration = timer_start(
+        context->ticks,
+        SECONDS(3),
+        how_high_timer_callback,
+        context);
+
     return true;
 }
 
 static bool how_high_update(state_context_t* context) {
-    if (s_how_high_frames > 0) {
-        s_how_high_frames--;
-    } else {
-        state_pop(context);
-        // XXX: the next state is based on level/stage
-        state_push(context, state_game_screen_1);
-    }
     return true;
 }
 
@@ -653,11 +671,14 @@ static bool long_introduction_enter(state_context_t* context) {
     donkey_kong->x = 124;
     donkey_kong->y = 176;
     donkey_kong->flags |= f_actor_enabled;
-    actor_animation(donkey_kong, anim_donkey_kong_climb_ladder);
+    actor_animation(
+        donkey_kong,
+        anim_donkey_kong_climb_ladder,
+        context->ticks);
 
     machine_header_update();
-    player1_header_update();
-    level_header_update();
+    player1_header_update(context->ticks);
+    level_header_update(context->ticks);
 
     return true;
 }
@@ -711,7 +732,7 @@ typedef struct tile_editor_state {
     bool cursor_visible;
     grid_value_t palette;
     uint16_t cursor_frames;
-    uint16_t message_frames;
+    timer_t* message_timer;
     tile_editor_action_t action;
     bg_control_block_t* copy_buffer;
 } tile_editor_state_t;
@@ -779,6 +800,11 @@ static copy_range_t s_copy_range;
 static grid_value_t s_palette_undo;
 static tile_editor_state_t s_tile_editor;
 
+static bool message_timer_callback(timer_t* timer, uint32_t ticks) {
+    s_tile_editor.message_timer = NULL;
+    return false;
+}
+
 static void draw_cursor(uint32_t y, uint32_t x) {
     if (s_tile_editor.cursor_frames > 0) {
         s_tile_editor.cursor_frames--;
@@ -799,8 +825,7 @@ static void draw_cursor(uint32_t y, uint32_t x) {
 }
 
 static void draw_footer(const bg_control_block_t* block) {
-    if (s_tile_editor.message_frames > 0) {
-        s_tile_editor.message_frames--;
+    if (s_tile_editor.message_timer != NULL) {
         video_text(
             s_green,
             SCREEN_HEIGHT - 20,
@@ -827,8 +852,12 @@ static void draw_footer(const bg_control_block_t* block) {
         s_tile_editor.text_entry ? "ASCII" : "TILE");
 }
 
-static void show_message(uint8_t frames, const char* fmt, ...) {
-    s_tile_editor.message_frames = frames;
+static void show_message(uint32_t ticks, uint32_t duration, const char* fmt, ...) {
+    s_tile_editor.message_timer = timer_start(
+        ticks,
+        duration,
+        message_timer_callback,
+        NULL);
 
     va_list list;
     va_start(list, fmt);
@@ -842,7 +871,7 @@ static bool editor_enter(state_context_t* context) {
             case editor_action_save: {
                 copy_bg(tile_map(s_tile_editor.index));
                 tile_map_save();
-                show_message(120, "ckong.dat saved");
+                show_message(context->ticks, SECONDS(2), "ckong.dat saved");
                 break;
             }
             case editor_action_exit: {
@@ -852,7 +881,7 @@ static bool editor_enter(state_context_t* context) {
             }
             case editor_action_fill_map: {
                 video_bg_fill(s_tile_editor.tile.value, s_tile_editor.palette.value);
-                show_message(120, "tile map filled");
+                show_message(context->ticks, SECONDS(2), "tile map filled");
                 break;
             }
             case editor_action_fill_row: {
@@ -864,7 +893,7 @@ static bool editor_enter(state_context_t* context) {
                         block->palette = s_tile_editor.palette.value;
                     }
                 }
-                show_message(120, "tile map row filled");
+                show_message(context->ticks, SECONDS(2), "tile map row filled");
                 break;
             }
             case editor_action_fill_column: {
@@ -876,7 +905,7 @@ static bool editor_enter(state_context_t* context) {
                         block->palette = s_tile_editor.palette.value;
                     }
                 }
-                show_message(120, "tile map column filled");
+                show_message(context->ticks, SECONDS(2), "tile map column filled");
                 break;
             }
             default: {
@@ -898,7 +927,7 @@ static bool editor_enter(state_context_t* context) {
     s_tile_editor.palette.x = 0;
     s_tile_editor.palette.y = 0;
     s_tile_editor.palette.value = 0;
-    s_tile_editor.message_frames = 0;
+    s_tile_editor.message_timer = NULL;
 
     s_tile_editor.text_entry = false;
 

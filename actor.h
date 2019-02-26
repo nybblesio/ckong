@@ -98,8 +98,8 @@ typedef struct actor {
     actor_anim_callback_t animation_callback;
 } actor_t;
 
-void actor_update(void);
-
 actor_t* actor(actors_t actor);
 
-void actor_animation(actor_t* actor, animations_t animation);
+void actor_update(uint32_t ticks);
+
+void actor_animation(actor_t* actor, animations_t animation, uint32_t ticks);

@@ -16,6 +16,7 @@
 #include "str.h"
 #include "log.h"
 #include "game.h"
+#include "timer.h"
 #include "actor.h"
 #include "video.h"
 #include "window.h"
@@ -113,14 +114,17 @@ bool game_run(game_context_t* context) {
     while (!should_quit()) {
         uint32_t frame_start_ticks = SDL_GetTicks();
 
+        timer_update(frame_start_ticks);
+
+        s_state_context.ticks = frame_start_ticks;
         state_update(&s_state_context);
 
-        actor_update();
+        actor_update(frame_start_ticks);
 
         if (s_show_fps)
             video_text(white, 2, 2, "FPS: %d", fps);
 
-        video_update(&context->window);
+        video_update(&context->window, frame_start_ticks);
 
         uint32_t frame_duration = SDL_GetTicks() - frame_start_ticks;
 
@@ -144,6 +148,8 @@ bool game_run(game_context_t* context) {
 }
 
 bool game_init(game_context_t* context) {
+    timer_init();
+
     game_config_load();
 
     log_message(category_app, "SDL_Init all the things.");

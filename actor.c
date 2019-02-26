@@ -921,7 +921,7 @@ static actor_t* s_actors[] = {
     NULL
 };
 
-void actor_update(void) {
+void actor_update(uint32_t ticks) {
     video_reset_sprites();
 
     uint8_t sprite_number = 0;
@@ -949,8 +949,7 @@ void actor_update(void) {
         }
 
         if (actor->animation->frame_count > 1) {
-            uint32_t current_ticks = SDL_GetTicks();
-            if (current_ticks >= actor->next_tick) {
+            if (ticks >= actor->next_tick) {
                 if (actor->frame < actor->animation->frame_count - 1)
                     actor->frame++;
                 else {
@@ -964,7 +963,7 @@ void actor_update(void) {
                     }
                 }
                 if (actor->animation != NULL)
-                    actor->next_tick = current_ticks + actor->animation->frames[actor->frame].delay;
+                    actor->next_tick = ticks + actor->animation->frames[actor->frame].delay;
             }
         }
     }
@@ -991,7 +990,7 @@ actor_t* actor(actors_t actor) {
     }
 }
 
-void actor_animation(actor_t* actor, animations_t animation) {
+void actor_animation(actor_t* actor, animations_t animation, uint32_t ticks) {
     if (actor->animation_type == animation)
         return;
 
@@ -1094,5 +1093,5 @@ void actor_animation(actor_t* actor, animations_t animation) {
             break;
     }
 
-    actor->next_tick = SDL_GetTicks() + actor->animation->frames[0].delay;
+    actor->next_tick = ticks + actor->animation->frames[0].delay;
 }

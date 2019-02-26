@@ -59,6 +59,7 @@ add_executable(
         actor.c actor.h
         video.c video.h
         level.c level.h
+        timer.c timer.h
         player.c player.h
         sprite.c sprite.h
         window.c window.h

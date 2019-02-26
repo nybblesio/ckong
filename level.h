@@ -23,4 +23,4 @@ typedef struct {
 
 level_t* level(uint8_t number);
 
-void level_header_update(void);
+void level_header_update(uint32_t ticks);

@@ -36,9 +36,9 @@ player_t* player2(void) {
     return &s_player2;
 }
 
-void player1_header_update(void) {
+void player1_header_update(uint32_t ticks) {
     video_bg_str(0, 3, 0, false, "1UP");
-    video_bg_blink(0, 3, 1, 3, 250, NULL);
+    video_bg_blink(0, 3, 1, 3, ticks, 250, NULL);
 
     video_bg_str(1, 1, 1, true, "%06d", s_player1.score);
 
@@ -52,5 +52,5 @@ void player1_header_update(void) {
     video_bg_str(3, 25, 2, true, "L=%02d", s_player1.level);
 }
 
-void player2_header_update(void) {
+void player2_header_update(uint32_t ticks) {
 }

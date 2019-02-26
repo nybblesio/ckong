@@ -38,6 +38,6 @@ player_t* player1(void);
 
 player_t* player2(void);
 
-void player1_header_update(void);
+void player1_header_update(uint32_t ticks);
 
-void player2_header_update(void);
+void player2_header_update(uint32_t ticks);

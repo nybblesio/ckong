@@ -57,7 +57,7 @@ typedef struct {
 } color_t;
 
 typedef struct bg_blinker bg_blinker_t;
-typedef bool (*bg_blinker_callback)(bg_blinker_t*);
+typedef bool (*bg_blinker_callback)(bg_blinker_t*, uint32_t);
 
 typedef struct bg_blinker {
     rect_t bounds;
@@ -168,6 +168,7 @@ bg_blinker_t* video_bg_blink(
     uint8_t x,
     uint8_t h,
     uint8_t w,
+    uint32_t ticks,
     uint32_t duration,
     bg_blinker_callback callback);
 
@@ -176,8 +177,6 @@ void video_reset_sprites(void);
 void video_clip_rect_clear(void);
 
 void video_clip_rect(rect_t rect);
-
-void video_update(window_t* window);
 
 void video_bg_set(const tile_map_t* map);
 
@@ -190,6 +189,8 @@ void video_fill_rect(color_t color, rect_t rect);
 spr_control_block_t* video_sprite(uint8_t number);
 
 void video_bg_fill(uint16_t tile, uint8_t palette);
+
+void video_update(window_t* window, uint32_t ticks);
 
 bg_control_block_t* video_tile(uint8_t y, uint8_t x);
 
