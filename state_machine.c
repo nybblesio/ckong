@@ -276,13 +276,17 @@ static void attract_init(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 
-static bool bonus_animation_callback(actor_t* actor) {
+static bool bonus_anim_callback(actor_t* actor) {
     if (actor->data1 > 0) {
         actor->data1--;
         return true;
     }
     actor->flags &= ~f_actor_enabled;
     return false;
+}
+
+static bool kong_climb_anim_callback(actor_t* actor) {
+    return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -508,6 +512,20 @@ static bool title_leave(state_context_t* context) {
 // Game Screen 1 State
 //
 // ----------------------------------------------------------------------------
+static bool help_blinker_callback(
+        bg_blinker_t* blinker,
+        uint32_t ticks) {
+    actor_t* pauline = actor(actor_pauline);
+    if (blinker->visible) {
+        blinker->duration = 1000;
+        actor_animation(pauline, anim_pauline_shuffle_right, ticks);
+    } else {
+        blinker->duration = 5000;
+        actor_animation(pauline, anim_pauline_stand_right, ticks);
+    }
+    return true;
+}
+
 static bool game_screen_1_enter(state_context_t* context) {
     video_bg_set(tile_map(tile_map_game_screen_1));
 
@@ -528,7 +546,7 @@ static bool game_screen_1_enter(state_context_t* context) {
     bonus->y = 100;
     bonus->data1 = 4;
     bonus->flags |= f_actor_enabled;
-    bonus->animation_callback = bonus_animation_callback;
+    bonus->animation_callback = bonus_anim_callback;
     actor_animation(bonus, anim_bonus_100, context->ticks);
 
     actor_t* pauline = actor(actor_pauline);
@@ -536,6 +554,15 @@ static bool game_screen_1_enter(state_context_t* context) {
     pauline->y = 43;
     actor_animation(pauline, anim_pauline_stand_right, context->ticks);
     pauline->flags |= f_actor_enabled;
+
+    video_bg_blink(
+        4,
+        15,
+        1,
+        3,
+        context->ticks,
+        5000,
+        help_blinker_callback);
 
     machine_header_update();
     player1_header_update(context->ticks);
@@ -805,13 +832,100 @@ static bool high_score_leave(state_context_t* context) {
 // Long Introduction State
 //
 // ----------------------------------------------------------------------------
+typedef enum {
+    intro_kong_climb,
+    intro_kong_jump_up,
+    intro_kong_jump_left,
+    intro_kong_roar,
+    intro_kong_wait
+} kong_intro_state_t;
+
+static timer_t* s_climb_timer = NULL;
+static uint8_t s_kong_jump_count = 5;
+static int8_t s_kong_jump_delta = -3;
+static kong_intro_state_t s_kong_intro_state;
+
+static bool kong_climb_timer_callback(timer_t* timer, uint32_t ticks) {
+    actor_t* donkey_kong = actor(actor_donkey_kong);
+
+    switch (s_kong_intro_state) {
+        case intro_kong_climb: {
+            if (donkey_kong->y > 80) {
+                donkey_kong->y -= 2;
+            } else {
+                actor_animation(donkey_kong, anim_donkey_kong_jump, ticks);
+                s_kong_intro_state = intro_kong_jump_up;
+                timer->duration = 30;
+            }
+            break;
+        }
+        case intro_kong_jump_up: {
+            if (donkey_kong->y > 40) {
+                donkey_kong->y -= 3;
+            } else {
+                actor_animation(donkey_kong, anim_donkey_kong_stand, ticks);
+                s_kong_intro_state = intro_kong_jump_left;
+                donkey_kong->y = 52;
+
+                timer->duration = 65;
+
+                actor_t* pauline = actor(actor_pauline);
+                pauline->x = 104;
+                pauline->y = 43;
+                pauline->flags |= f_actor_enabled;
+                actor_animation(pauline, anim_pauline_stand_right, ticks);
+            }
+            break;
+        }
+        case intro_kong_jump_left: {
+            donkey_kong->x -= 3;
+            donkey_kong->y += s_kong_jump_delta;
+
+            if (donkey_kong->y <= 45) {
+                s_kong_jump_delta = 3;
+            } else if (donkey_kong->y >= 52) {
+                donkey_kong->y = 52;
+                s_kong_jump_delta = -3;
+
+                timer->duration = 125;
+                s_kong_intro_state = intro_kong_wait;
+
+                if (s_kong_jump_count > 0)
+                    s_kong_jump_count--;
+            }
+            break;
+        }
+        case intro_kong_roar: {
+            actor_animation(donkey_kong, anim_donkey_kong_roar, ticks);
+            // XXX: play the "roar" sound
+            break;
+        }
+        case intro_kong_wait: {
+            if (s_kong_jump_count > 0) {
+                timer->duration = 65;
+                s_kong_intro_state = intro_kong_jump_left;
+            } else {
+                s_kong_intro_state = intro_kong_roar;
+            }
+            break;
+        }
+    }
+
+    return true;
+}
+
 static bool long_introduction_enter(state_context_t* context) {
     video_bg_set(tile_map(tile_map_introduction));
+
+    s_kong_intro_state = intro_kong_climb;
+    s_kong_jump_delta = -3;
+    s_kong_jump_count = 5;
 
     actor_t* donkey_kong = actor(actor_donkey_kong);
     donkey_kong->x = 124;
     donkey_kong->y = 208;
     donkey_kong->flags |= f_actor_enabled;
+    donkey_kong->animation_callback = &kong_climb_anim_callback;
     actor_animation(
         donkey_kong,
         anim_donkey_kong_climb_ladder,
@@ -821,19 +935,26 @@ static bool long_introduction_enter(state_context_t* context) {
     player1_header_update(context->ticks);
     level_header_update(context->ticks);
 
+    s_climb_timer = timer_start(
+        context->ticks,
+        55,
+        kong_climb_timer_callback,
+        context);
+
     return true;
 }
 
 static bool long_introduction_update(state_context_t* context) {
-    actor_t* donkey_kong = actor(actor_donkey_kong);
-
-    if (donkey_kong->y > 80)
-        donkey_kong->y--;
+    if (joystick_button_pressed(context->joystick, button_x)) {
+        state_push(context, state_editor);
+        return true;
+    }
 
     return true;
 }
 
 static bool long_introduction_leave(state_context_t* context) {
+    actor_reset();
     return true;
 }
 

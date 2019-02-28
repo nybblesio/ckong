@@ -46,6 +46,7 @@ typedef enum {
     anim_barrel_roll_left,
     anim_barrel_roll_down,
     anim_donkey_kong_roar,
+    anim_donkey_kong_jump,
     anim_donkey_kong_stand,
     anim_mario_stand_right,
     anim_barrel_roll_right,

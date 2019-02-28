@@ -180,6 +180,7 @@ bool game_init(game_context_t* context) {
     s_state_context.player = player1();
 
     state_push(&s_state_context, state_long_introduction);
+//    state_push(&s_state_context, state_boot);
 
     context->valid = true;
 

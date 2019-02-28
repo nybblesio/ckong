@@ -882,7 +882,7 @@ static animation_t s_donkey_kong_climb = {
     .frame_count = 2,
     .frames = {
         {
-            .delay = 250,
+            .delay = 225,
             .tile_count = 7,
             .tiles = {
                 {
@@ -922,15 +922,15 @@ static animation_t s_donkey_kong_climb = {
                     .palette = 8,
                 },
                 {
-                    .x_offset = 24,
-                    .y_offset = 10,
-                    .tile = 19,
+                    .x_offset = 22,
+                    .y_offset = 9,
+                    .tile = 20,
                     .palette = 10,
                 },
             }
         },
         {
-            .delay = 250,
+            .delay = 225,
             .tile_count = 7,
             .tiles = {
                 {
@@ -973,9 +973,66 @@ static animation_t s_donkey_kong_climb = {
                     .flags = f_spr_hflip
                 },
                 {
+                    .x_offset = 22,
+                    .y_offset = 9,
+                    .tile = 20,
+                    .palette = 10,
+                },
+            }
+        },
+    }
+};
+
+static animation_t s_donkey_kong_jump = {
+    .frame_count = 1,
+    .frames = {
+        {
+            .delay = 0,
+            .tile_count = 7,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 50,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 16,
+                    .y_offset = 0,
+                    .tile = 51,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = -3,
+                    .y_offset = -3,
+                    .tile = 53,
+                    .palette = 8,
+                    .flags = f_spr_hflip
+                },
+                {
                     .x_offset = 24,
-                    .y_offset = 10,
-                    .tile = 19,
+                    .y_offset = 2,
+                    .tile = 49,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 0,
+                    .y_offset = 16,
+                    .tile = 55,
+                    .palette = 8,
+                    .flags = f_spr_hflip
+                },
+                {
+                    .x_offset = 16,
+                    .y_offset = 16,
+                    .tile = 54,
+                    .palette = 8,
+                    .flags = f_spr_hflip
+                },
+                {
+                    .x_offset = 22,
+                    .y_offset = 9,
+                    .tile = 20,
                     .palette = 10,
                 },
             }
@@ -1222,6 +1279,9 @@ void actor_animation(actor_t* actor, animations_t animation, uint32_t ticks) {
         case anim_barrel_roll_down:
             actor->animation = NULL;
             break;
+        case anim_donkey_kong_jump:
+            actor->animation = &s_donkey_kong_jump;
+            break;
         case anim_mario_stand_right:
             actor->animation = &s_mario_stand_right;
             break;
@@ -1260,5 +1320,6 @@ void actor_animation(actor_t* actor, animations_t animation, uint32_t ticks) {
             break;
     }
 
-    actor->next_tick = ticks + actor->animation->frames[0].delay;
+    if (actor->animation != NULL)
+        actor->next_tick = ticks + actor->animation->frames[0].delay;
 }
