@@ -53,6 +53,7 @@ typedef enum {
     anim_barrel_stacked,
     anim_donkey_kong_climb_ladder,
     anim_donkey_kong_roar,
+    anim_donkey_kong_title_pose,
     anim_donkey_kong_throw_barrel,
     anim_oil_barrel,
     anim_oil_fire
@@ -99,6 +100,8 @@ typedef struct actor {
 } actor_t;
 
 actor_t* actor(actors_t actor);
+
+void actor_reset();
 
 void actor_update(uint32_t ticks);
 

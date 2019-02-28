@@ -45,7 +45,7 @@ static bg_control_block_t s_bg_control[TILE_MAP_SIZE];
 void video_bg_str(
         uint8_t y,
         uint8_t x,
-        uint8_t palette,
+        int8_t palette,
         bool enabled,
         const char* fmt,
         ...) {
@@ -64,16 +64,20 @@ void video_bg_str(
         uint8_t c = (uint8_t) buffer[i];
         if (c == 0x20) {
             block->tile = 0x0a;
-            block->palette = 0x0f;
+            if (palette > 0)
+                block->palette = 0x0f;
         } else if (c == '=') {
             block->tile = 52;
-            block->palette = palette;
+            if (palette > 0)
+                block->palette = palette;
         } else if (c > 128) {
             block->tile = c;
-            block->palette = palette;
+            if (palette > 0)
+                block->palette = palette;
         } else {
             block->tile = (uint16_t) (c - 48);
-            block->palette = palette;
+            if (palette > 0)
+                block->palette = palette;
         }
         if (!enabled)
             block->flags &= ~f_bg_enabled;
@@ -213,42 +217,43 @@ static bool video_draw_tile(
 static void video_bg_update(uint32_t ticks) {
     for (uint32_t i = 0; i < s_current_blinker; i++) {
         bg_blinker_t* blinker = &s_blinkers[i];
-        if (blinker->duration > 0) {
-            if (ticks > blinker->timeout) {
-                bool blinker_result = true;
+        if (blinker->duration <= 0)
+            continue;
 
-                if (blinker->callback != NULL) {
-                    blinker_result = blinker->callback(blinker, ticks);
-                }
+        if (ticks > blinker->timeout) {
+            bool blinker_result = true;
 
-                if (blinker_result) {
-                    blinker->timeout = ticks + blinker->duration;
-                }
-
-                int32_t ty = blinker->bounds.top;
-                int32_t tx = blinker->bounds.left;
-                for (uint8_t y = 0; y < blinker->bounds.height; y++) {
-                    for (uint8_t x = 0; x < blinker->bounds.width; x++) {
-                        bg_control_block_t* block = video_tile(
-                            (uint8_t) ty,
-                            (uint8_t) tx);
-                        if (!blinker->visible) {
-                            block->flags &= ~f_bg_enabled;
-                        } else {
-                            block->flags |= f_bg_enabled;
-                        }
-                        block->flags |= f_bg_changed;
-
-                        if (tx < TILE_MAP_WIDTH)
-                            tx++;
-                    }
-                    tx = blinker->bounds.left;
-                    if (ty < TILE_MAP_HEIGHT)
-                        ty++;
-                }
-
-                blinker->visible = !blinker->visible;
+            if (blinker->callback != NULL) {
+                blinker_result = blinker->callback(blinker, ticks);
             }
+
+            if (blinker_result) {
+                blinker->timeout = ticks + blinker->duration;
+            }
+
+            int32_t ty1 = blinker->bounds.top;
+            int32_t tx1 = blinker->bounds.left;
+            for (uint8_t y = 0; y < blinker->bounds.height; y++) {
+                for (uint8_t x = 0; x < blinker->bounds.width; x++) {
+                    bg_control_block_t* block1 = video_tile(
+                        (uint8_t) ty1,
+                        (uint8_t) tx1);
+                    if (!blinker->visible) {
+                        block1->flags &= ~f_bg_enabled;
+                    } else {
+                        block1->flags |= f_bg_enabled;
+                    }
+                    block1->flags |= f_bg_changed;
+
+                    if (tx1 < TILE_MAP_WIDTH)
+                        tx1++;
+                }
+                tx1 = blinker->bounds.left;
+                if (ty1 < TILE_MAP_HEIGHT)
+                    ty1++;
+            }
+
+            blinker->visible = !blinker->visible;
         }
     }
 
@@ -601,6 +606,30 @@ void video_hline(color_t color, uint16_t y, uint16_t x, uint16_t w) {
     };
     s_pre_commands[s_current_pre_command].data.hline = line;
     ++s_current_pre_command;
+}
+
+void video_bg_pal_rect(rect_t rect, uint8_t palette) {
+    for (uint8_t y = rect.top; y < rect.top + rect.height; y++) {
+        for (uint8_t x = rect.left; x < rect.left + rect.width; x++) {
+            uint32_t index = (uint32_t) (y * TILE_MAP_WIDTH + x);
+            bg_control_block_t* block = &s_bg_control[index];
+            block->palette = palette;
+            block->flags |= f_bg_enabled | f_bg_changed;
+        }
+    }
+}
+
+void video_bg_fill_rect(rect_t rect, uint16_t tile, int8_t palette) {
+    for (uint8_t y = rect.top; y < rect.top + rect.height; y++) {
+        for (uint8_t x = rect.left; x < rect.left + rect.width; x++) {
+            uint32_t index = (uint32_t) (y * TILE_MAP_WIDTH + x);
+            bg_control_block_t* block = &s_bg_control[index];
+            block->tile = tile;
+            if (palette > 0)
+                block->palette = palette;
+            block->flags |= f_bg_enabled | f_bg_changed;
+        }
+    }
 }
 
 void video_text(color_t color, uint16_t y, uint16_t x, const char* fmt, ...) {

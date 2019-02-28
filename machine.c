@@ -23,9 +23,20 @@ static machine_file_t s_file;
 
 void machine_init(void) {
     strncpy(s_file.header, "CKONG11*", 8);
-    s_file.machine.credits[0] = 0;
-    s_file.machine.credits[1] = 0;
-    s_file.machine.high_score = 0;
+    s_file.machine.credits = 0;
+
+    char name_char = 'A';
+    uint32_t score = 10000;
+    for (uint8_t i = 0; i < 5; i++) {
+        s_file.machine.score_history[i].score = score;
+
+        memset(s_file.machine.score_history[i].name, name_char++, 6);
+        s_file.machine.score_history[i].name[7] = '\0';
+
+        score -= 1000;
+    }
+
+    s_file.machine.high_score = s_file.machine.score_history[0].score;
 }
 
 void machine_load(void) {

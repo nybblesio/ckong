@@ -37,9 +37,6 @@ player_t* player2(void) {
 }
 
 void player1_header_update(uint32_t ticks) {
-    video_bg_str(0, 3, 0, false, "1UP");
-    video_bg_blink(0, 3, 1, 3, ticks, 250, NULL);
-
     video_bg_str(1, 1, 1, true, "%06d", s_player1.score);
 
     for (uint8_t i = 0; i < s_player1.lives; i++) {

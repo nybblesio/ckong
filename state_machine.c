@@ -224,9 +224,58 @@ static void copy_bg(const tile_map_t* tile_map) {
 
 // ----------------------------------------------------------------------------
 //
+// Attract Mode State
+//
+// ----------------------------------------------------------------------------
+#define MAX_ATTRACT_STATES (3)
+static states_t s_states[MAX_ATTRACT_STATES] = {
+    state_insert_coin,
+    state_game_screen_1,
+    state_title
+};
+
+typedef struct {
+    bool active;
+    timer_t* timer;
+    uint8_t state_index;
+} attract_state_t;
+
+static attract_state_t s_attract_state;
+
+static bool attract_timer_callback(timer_t* timer, uint32_t ticks) {
+    if (!s_attract_state.active)
+        return true;
+
+    state_context_t* context = (state_context_t*) timer->user;
+    state_pop(context);
+
+    if (s_attract_state.state_index < MAX_ATTRACT_STATES - 1) {
+        s_attract_state.state_index++;
+    } else {
+        s_attract_state.state_index = 0;
+    }
+
+    state_push(context, s_states[s_attract_state.state_index]);
+
+    return true;
+}
+
+static void attract_init(state_context_t* context) {
+    s_attract_state.active = true;
+    s_attract_state.state_index = 0;
+    s_attract_state.timer = timer_start(
+        context->ticks,
+        SECONDS(10),
+        attract_timer_callback,
+        context);
+}
+
+// ----------------------------------------------------------------------------
+//
 // Callbacks
 //
 // ----------------------------------------------------------------------------
+
 static bool bonus_animation_callback(actor_t* actor) {
     if (actor->data1 > 0) {
         actor->data1--;
@@ -282,6 +331,7 @@ static bool boot_update(state_context_t* context) {
 }
 
 static bool boot_leave(state_context_t* context) {
+    attract_init(context);
     return true;
 }
 
@@ -307,27 +357,73 @@ static bool credit_leave(state_context_t* context) {
 // Insert Coin State
 //
 // ----------------------------------------------------------------------------
+static bg_blinker_t* s_player_up_blinker = NULL;
+
+static void update_credits(const machine_t* machine, uint32_t ticks) {
+    video_bg_str(
+        31,
+        27,
+        3,
+        true,
+        "%02d",
+        machine->credits);
+
+    if (machine->credits > 0) {
+        s_attract_state.active = false;
+
+        if (s_player_up_blinker == NULL || s_player_up_blinker->duration == 0)
+            s_player_up_blinker = video_bg_blink(0, 3, 1, 3, ticks, 250, NULL);
+
+        rect_t rect = {
+            .left = 0x07,
+            .top = 0x06,
+            .width = 16,
+            .height = 10
+        };
+
+        video_bg_fill_rect(rect, 0x0a, 0x0f);
+        video_bg_str(7, 13, 6, true, "PUSH");
+
+        if (machine->credits > 1) {
+            video_bg_str(10, 5, 6, true, "1 OR 2 PLAYERS BUTTON");
+        } else {
+            video_bg_str(10, 5, 6, true, "ONLY 1 PLAYER BUTTON");
+        }
+    } else {
+        s_attract_state.active = true;
+    }
+}
+
+static void update_score_history(const machine_t* machine) {
+    uint8_t sy = 19;
+    for (uint8_t i = 0; i < 5; i++) {
+        video_bg_str(sy,  8, CURRENT_PALETTE, true, "%06d", machine->score_history[i].score);
+        video_bg_str(sy, 16, CURRENT_PALETTE, true, "%s",   machine->score_history[i].name);
+        sy += 2;
+    }
+}
+
 static bool insert_coin_enter(state_context_t* context) {
     video_bg_set(tile_map(tile_map_insert_coin));
+
+    machine_header_update();
+    update_credits(context->machine, context->ticks);
+    update_score_history(context->machine);
     return true;
 }
 
 static bool insert_coin_update(state_context_t* context) {
     machine_t* machine = context->machine;
+
     if (joystick_button_pressed(context->joystick, button_x)) {
         state_push(context, state_editor);
         return true;
     }
 
     if (key_pressed(SDL_SCANCODE_1)) {
-        if (machine->credits[0] < 0xff) {
-            machine->credits[0]++;
-        }
-    }
-
-    if (key_pressed(SDL_SCANCODE_2)) {
-        if (machine->credits[1] < 0xff) {
-            machine->credits[1]++;
+        if (machine->credits < 90) {
+            machine->credits++;
+            update_credits(context->machine, context->ticks);
         }
     }
 
@@ -338,18 +434,14 @@ static bool insert_coin_update(state_context_t* context) {
         return true;
     }
 
-    video_bg_str(
-        31,
-        27,
-        3,
-        true,
-        "%02d",
-        machine->credits[0] + machine->credits[1]);
-
     return true;
 }
 
 static bool insert_coin_leave(state_context_t* context) {
+    if (context->machine->credits == 0
+    &&  s_player_up_blinker != NULL) {
+        s_player_up_blinker->duration = 0;
+    }
     return true;
 }
 
@@ -358,7 +450,45 @@ static bool insert_coin_leave(state_context_t* context) {
 // Title State
 //
 // ----------------------------------------------------------------------------
+static timer_t* s_title_timer = NULL;
+
+static uint8_t s_title_palette = 0;
+
+static bool title_timer_callback(timer_t* timer, uint32_t ticks) {
+    if (s_title_palette < PALETTE_MAX - 1)
+        s_title_palette++;
+    else
+        s_title_palette = 0;
+
+    rect_t rect = {
+        .left = 2,
+        .top = 6,
+        .width = 0x19,
+        .height = 0x0c
+    };
+    video_bg_pal_rect(rect, s_title_palette);
+
+    return true;
+}
+
 static bool title_enter(state_context_t* context) {
+    video_bg_set(tile_map(tile_map_title));
+    machine_header_update();
+
+    s_title_palette = 0;
+    s_title_timer = timer_start(
+        context->ticks,
+        17,
+        title_timer_callback,
+        context);
+
+    actor_t* donkey_kong = actor(actor_donkey_kong);
+    donkey_kong->x = 100;
+    donkey_kong->y = 170;
+    donkey_kong->flags |= f_actor_enabled;
+    donkey_kong->animation_callback = NULL;
+    actor_animation(donkey_kong, anim_donkey_kong_title_pose, context->ticks);
+
     return true;
 }
 
@@ -367,6 +497,9 @@ static bool title_update(state_context_t* context) {
 }
 
 static bool title_leave(state_context_t* context) {
+    actor_reset();
+    timer_stop(s_title_timer);
+    s_title_timer = NULL;
     return true;
 }
 
@@ -494,6 +627,7 @@ static bool game_screen_1_update(state_context_t* context) {
 }
 
 static bool game_screen_1_leave(state_context_t* context) {
+    actor_reset();
     return true;
 }
 
@@ -503,6 +637,7 @@ static bool game_screen_1_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool game_screen_2_enter(state_context_t* context) {
+    machine_header_update();
     return true;
 }
 
@@ -511,6 +646,7 @@ static bool game_screen_2_update(state_context_t* context) {
 }
 
 static bool game_screen_2_leave(state_context_t* context) {
+    actor_reset();
     return true;
 }
 
@@ -520,6 +656,7 @@ static bool game_screen_2_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool game_screen_3_enter(state_context_t* context) {
+    machine_header_update();
     return true;
 }
 
@@ -528,6 +665,7 @@ static bool game_screen_3_update(state_context_t* context) {
 }
 
 static bool game_screen_3_leave(state_context_t* context) {
+    actor_reset();
     return true;
 }
 
@@ -537,6 +675,7 @@ static bool game_screen_3_leave(state_context_t* context) {
 //
 // ----------------------------------------------------------------------------
 static bool game_screen_4_enter(state_context_t* context) {
+    machine_header_update();
     return true;
 }
 
@@ -545,6 +684,7 @@ static bool game_screen_4_update(state_context_t* context) {
 }
 
 static bool game_screen_4_leave(state_context_t* context) {
+    actor_reset();
     return true;
 }
 
@@ -610,6 +750,7 @@ static bool how_high_timer_callback(timer_t* timer, uint32_t ticks) {
 
 static bool how_high_enter(state_context_t* context) {
     video_bg_set(tile_map(tile_map_how_high));
+    machine_header_update();
 
     player_t* player = context->player;
     player->level = 4;
@@ -866,6 +1007,8 @@ static void show_message(uint32_t ticks, uint32_t duration, const char* fmt, ...
 }
 
 static bool editor_enter(state_context_t* context) {
+    s_attract_state.active = false;
+
     if (s_tile_editor.active) {
         switch (s_tile_editor.action) {
             case editor_action_save: {
@@ -1146,6 +1289,7 @@ static bool editor_update(state_context_t* context) {
         if (!s_tile_editor.text_entry) {
             copy_bg(tile_map(s_tile_editor.index));
             s_tile_editor.active = false;
+            s_attract_state.active = true;
             state_pop(context);
         }
         return true;
@@ -1520,48 +1664,63 @@ void state_push(state_context_t* context, states_t state) {
     state_t* state_ptr = NULL;
     switch (state) {
         case state_boot:
+            log_message(category_app, "push: state_boot");
             state_ptr = &s_boot;
             break;
         case state_title:
+            log_message(category_app, "push: state_title");
             state_ptr = &s_title;
             break;
         case state_credit:
+            log_message(category_app, "push: state_credit");
             state_ptr = &s_credit;
             break;
         case state_editor:
+            log_message(category_app, "push: state_editor");
             state_ptr = &s_editor;
             break;
         case state_how_high:
+            log_message(category_app, "push: state_how_high");
             state_ptr = &s_how_high;
             break;
         case state_high_score:
+            log_message(category_app, "push: state_high_score");
             state_ptr = &s_high_score;
             break;
         case state_insert_coin:
+            log_message(category_app, "push: state_insert_coin");
             state_ptr = &s_insert_coin;
             break;
         case state_editor_menu:
+            log_message(category_app, "push: state_editor_menu");
             state_ptr = &s_editor_menu;
             break;
         case state_game_screen_1:
+            log_message(category_app, "push: state_game_screen_1");
             state_ptr = &s_game_screen_1;
             break;
         case state_game_screen_2:
+            log_message(category_app, "push: state_game_screen_2");
             state_ptr = &s_game_screen_2;
             break;
         case state_game_screen_3:
+            log_message(category_app, "push: state_game_screen_3");
             state_ptr = &s_game_screen_3;
             break;
         case state_game_screen_4:
+            log_message(category_app, "push: state_game_screen_4");
             state_ptr = &s_game_screen_4;
             break;
         case state_editor_pick_tile:
+            log_message(category_app, "push: state_editor_pick_tile");
             state_ptr = &s_editor_pick_tile;
             break;
         case state_long_introduction:
+            log_message(category_app, "push: state_long_introduction");
             state_ptr = &s_long_introduction;
             break;
         case state_editor_pick_palette:
+            log_message(category_app, "push: state_editor_pick_palette");
             state_ptr = &s_editor_pick_palette;
             break;
         default:

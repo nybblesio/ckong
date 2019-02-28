@@ -24,6 +24,7 @@
 #define BLINKERS_MAX (16)
 #define FRAME_RATE (60)
 #define MS_PER_FRAME (1000 / FRAME_RATE)
+#define CURRENT_PALETTE (-1)
 
 typedef enum {
     f_spr_none     = 0b00000000,
@@ -154,7 +155,7 @@ typedef struct {
 void video_bg_str(
     uint8_t y,
     uint8_t x,
-    uint8_t palette,
+    int8_t palette,
     bool enabled,
     const char* fmt,
     ...);
@@ -193,6 +194,10 @@ void video_bg_fill(uint16_t tile, uint8_t palette);
 void video_update(window_t* window, uint32_t ticks);
 
 bg_control_block_t* video_tile(uint8_t y, uint8_t x);
+
+void video_bg_pal_rect(rect_t rect, uint8_t palette);
+
+void video_bg_fill_rect(rect_t rect, uint16_t tile, int8_t palette);
 
 void video_vline(color_t color, uint16_t y, uint16_t x, uint16_t h);
 

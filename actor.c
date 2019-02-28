@@ -728,6 +728,36 @@ static animation_t s_mario_climb_end = {
     }
 };
 
+static animation_t s_donkey_kong_title_pose = {
+    .frame_count = 1,
+    .frames = {
+        {
+            .delay = 0,
+            .tile_count = 3,
+            .tiles = {
+                {
+                    .x_offset = 0,
+                    .y_offset = 0,
+                    .tile = 50,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 16,
+                    .y_offset = 0,
+                    .tile = 32,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 32,
+                    .y_offset = 0,
+                    .tile = 40,
+                    .palette = 8,
+                },
+            }
+        },
+    }
+};
+
 static animation_t s_donkey_kong_climb = {
     .frame_count = 2,
     .frames = {
@@ -921,6 +951,17 @@ static actor_t* s_actors[] = {
     NULL
 };
 
+void actor_reset() {
+    video_reset_sprites();
+
+    for (uint32_t i = 0;; i++) {
+        actor_t* actor = s_actors[i];
+        if (actor == NULL)
+            break;
+        actor->flags = f_actor_none;
+    }
+}
+
 void actor_update(uint32_t ticks) {
     video_reset_sprites();
 
@@ -1081,6 +1122,9 @@ void actor_animation(actor_t* actor, animations_t animation, uint32_t ticks) {
             break;
         case anim_donkey_kong_throw_barrel:
             actor->animation = NULL;
+            break;
+        case anim_donkey_kong_title_pose:
+            actor->animation = &s_donkey_kong_title_pose;
             break;
         case anim_oil_barrel:
             actor->animation = &s_oil_barrel_anim;
