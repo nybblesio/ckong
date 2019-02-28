@@ -810,7 +810,7 @@ static bool long_introduction_enter(state_context_t* context) {
 
     actor_t* donkey_kong = actor(actor_donkey_kong);
     donkey_kong->x = 124;
-    donkey_kong->y = 176;
+    donkey_kong->y = 208;
     donkey_kong->flags |= f_actor_enabled;
     actor_animation(
         donkey_kong,
@@ -827,7 +827,7 @@ static bool long_introduction_enter(state_context_t* context) {
 static bool long_introduction_update(state_context_t* context) {
     actor_t* donkey_kong = actor(actor_donkey_kong);
 
-    if (donkey_kong->y > 30)
+    if (donkey_kong->y > 80)
         donkey_kong->y--;
 
     return true;

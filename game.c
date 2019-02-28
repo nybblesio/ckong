@@ -179,7 +179,7 @@ bool game_init(game_context_t* context) {
     s_state_context.machine = machine();
     s_state_context.player = player1();
 
-    state_push(&s_state_context, state_boot);
+    state_push(&s_state_context, state_long_introduction);
 
     context->valid = true;
 

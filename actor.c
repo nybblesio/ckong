@@ -728,6 +728,108 @@ static animation_t s_mario_climb_end = {
     }
 };
 
+static animation_t s_donkey_kong_stand = {
+    .frame_count = 1,
+    .frames = {
+        {
+            .delay = 0,
+            .tile_count = 6,
+            .tiles = {
+                {
+                    .x_offset = 4,
+                    .y_offset = 16,
+                    .tile = 39,
+                    .palette = 8,
+                    .flags = f_spr_hflip
+                },
+                {
+                    .x_offset = 16,
+                    .y_offset = 16,
+                    .tile = 37,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 28,
+                    .y_offset = 16,
+                    .tile = 39,
+                    .palette = 8,
+                },
+
+                {
+                    .x_offset = 5,
+                    .y_offset = 4,
+                    .tile = 41,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 16,
+                    .y_offset = 0,
+                    .tile = 35,
+                    .palette = 7,
+                },
+                {
+                    .x_offset = 27,
+                    .y_offset = 4,
+                    .tile = 41,
+                    .palette = 8,
+                    .flags = f_spr_hflip
+                },
+            }
+        },
+    }
+};
+
+static animation_t s_donkey_kong_roar = {
+    .frame_count = 1,
+    .frames = {
+        {
+            .delay = 0,
+            .tile_count = 6,
+            .tiles = {
+                {
+                    .x_offset = 4,
+                    .y_offset = 16,
+                    .tile = 39,
+                    .palette = 8,
+                    .flags = f_spr_hflip
+                },
+                {
+                    .x_offset = 16,
+                    .y_offset = 16,
+                    .tile = 37,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 28,
+                    .y_offset = 16,
+                    .tile = 39,
+                    .palette = 8,
+                },
+
+                {
+                    .x_offset = 5,
+                    .y_offset = 4,
+                    .tile = 41,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 16,
+                    .y_offset = 0,
+                    .tile = 36,
+                    .palette = 7,
+                },
+                {
+                    .x_offset = 27,
+                    .y_offset = 4,
+                    .tile = 41,
+                    .palette = 8,
+                    .flags = f_spr_hflip
+                },
+            }
+        },
+    }
+};
+
 static animation_t s_donkey_kong_title_pose = {
     .frame_count = 1,
     .frames = {
@@ -1060,23 +1162,8 @@ void actor_animation(actor_t* actor, animations_t animation, uint32_t ticks) {
         case anim_none:
             actor->animation = NULL;
             break;
-        case anim_mario_walk_left:
-            actor->animation = &s_mario_walk_left;
-            break;
-        case anim_mario_walk_right:
-            actor->animation = &s_mario_walk_right;
-            break;
-        case anim_mario_stand_left:
-            actor->animation = &s_mario_stand_left;
-            break;
-        case anim_mario_stand_right:
-            actor->animation = &s_mario_stand_right;
-            break;
-        case anim_mario_jump_left:
-            actor->animation = &s_mario_jump_left;
-            break;
-        case anim_mario_jump_right:
-            actor->animation = &s_mario_jump_right;
+        case anim_oil_fire:
+            actor->animation = &s_oil_fire_anim;
             break;
         case anim_bonus_100:
             actor->animation = &s_bonus_100_anim;
@@ -1093,32 +1180,38 @@ void actor_animation(actor_t* actor, animations_t animation, uint32_t ticks) {
         case anim_bonus_800:
             actor->animation = &s_bonus_800_anim;
             break;
+        case anim_mario_die:
+            actor->animation = NULL;
+            break;
+        case anim_oil_barrel:
+            actor->animation = &s_oil_barrel_anim;
+            break;
         case anim_mario_climb:
             actor->animation = &s_mario_climb;
+            break;
+        case anim_barrel_stacked:
+            actor->animation = NULL;
+            break;
+        case anim_mario_walk_left:
+            actor->animation = &s_mario_walk_left;
+            break;
+        case anim_mario_jump_left:
+            actor->animation = &s_mario_jump_left;
             break;
         case anim_mario_climb_end:
             actor->animation = &s_mario_climb_end;
             break;
-        case anim_mario_hammer_walk_left:
-            actor->animation = NULL;
+        case anim_mario_walk_right:
+            actor->animation = &s_mario_walk_right;
             break;
-        case anim_mario_hammer_walk_right:
-            actor->animation = NULL;
+        case anim_mario_stand_left:
+            actor->animation = &s_mario_stand_left;
             break;
-        case anim_mario_die:
-            actor->animation = NULL;
+        case anim_mario_jump_right:
+            actor->animation = &s_mario_jump_right;
             break;
-        case anim_pauline_stand_right:
-            actor->animation = &s_pauline_stand_right;
-            break;
-        case anim_pauline_stand_left:
-            actor->animation = &s_pauline_stand_left;
-            break;
-        case anim_pauline_shuffle_right:
-            actor->animation = &s_pauline_shuffle_right;
-            break;
-        case anim_pauline_shuffle_left:
-            actor->animation = &s_pauline_shuffle_left;
+        case anim_donkey_kong_roar:
+            actor->animation = &s_donkey_kong_roar;
             break;
         case anim_barrel_roll_right:
             actor->animation = NULL;
@@ -1129,26 +1222,38 @@ void actor_animation(actor_t* actor, animations_t animation, uint32_t ticks) {
         case anim_barrel_roll_down:
             actor->animation = NULL;
             break;
-        case anim_barrel_stacked:
-            actor->animation = NULL;
+        case anim_mario_stand_right:
+            actor->animation = &s_mario_stand_right;
             break;
-        case anim_donkey_kong_climb_ladder:
-            actor->animation = &s_donkey_kong_climb;
+        case anim_donkey_kong_stand:
+            actor->animation = &s_donkey_kong_stand;
             break;
-        case anim_donkey_kong_roar:
-            actor->animation = NULL;
+        case anim_pauline_stand_left:
+            actor->animation = &s_pauline_stand_left;
             break;
-        case anim_donkey_kong_throw_barrel:
+        case anim_pauline_stand_right:
+            actor->animation = &s_pauline_stand_right;
+            break;
+        case anim_pauline_shuffle_right:
+            actor->animation = &s_pauline_shuffle_right;
+            break;
+        case anim_pauline_shuffle_left:
+            actor->animation = &s_pauline_shuffle_left;
+            break;
+        case anim_mario_hammer_walk_left:
             actor->animation = NULL;
             break;
         case anim_donkey_kong_title_pose:
             actor->animation = &s_donkey_kong_title_pose;
             break;
-        case anim_oil_barrel:
-            actor->animation = &s_oil_barrel_anim;
+        case anim_mario_hammer_walk_right:
+            actor->animation = NULL;
             break;
-        case anim_oil_fire:
-            actor->animation = &s_oil_fire_anim;
+        case anim_donkey_kong_climb_ladder:
+            actor->animation = &s_donkey_kong_climb;
+            break;
+        case anim_donkey_kong_throw_barrel:
+            actor->animation = NULL;
             break;
         default:
             actor->animation = NULL;
