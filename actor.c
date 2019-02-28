@@ -733,19 +733,37 @@ static animation_t s_donkey_kong_title_pose = {
     .frames = {
         {
             .delay = 0,
-            .tile_count = 3,
+            .tile_count = 6,
             .tiles = {
                 {
-                    .x_offset = 0,
-                    .y_offset = 0,
-                    .tile = 50,
+                    .x_offset = 16,
+                    .y_offset = 16,
+                    .tile = 37,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 2,
+                    .y_offset = 16,
+                    .tile = 38,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 28,
+                    .y_offset = 16,
+                    .tile = 39,
+                    .palette = 8,
+                },
+                {
+                    .x_offset = 5,
+                    .y_offset = 4,
+                    .tile = 41,
                     .palette = 8,
                 },
                 {
                     .x_offset = 16,
                     .y_offset = 0,
-                    .tile = 32,
-                    .palette = 8,
+                    .tile = 36,
+                    .palette = 7,
                 },
                 {
                     .x_offset = 32,

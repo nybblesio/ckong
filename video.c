@@ -654,7 +654,7 @@ void video_text(color_t color, uint16_t y, uint16_t x, const char* fmt, ...) {
 }
 
 void video_stamp_tile(uint16_t y, uint16_t x, uint16_t tile, uint8_t palette, uint8_t flags) {
-    if (s_current_pre_command >= POST_COMMANDS_MAX - 1)
+    if (s_current_pre_command >= PRE_COMMANDS_MAX - 1)
         return;
 
     s_pre_commands[s_current_pre_command].type = vid_pre_tile;

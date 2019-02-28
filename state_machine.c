@@ -1446,10 +1446,6 @@ static bool editor_pick_tile_update(state_context_t* context) {
     if (joystick_button_pressed(context->joystick, button_dpad_down)) {
         if (tile->y < 15)
             tile->y++;
-
-        const uint16_t max_x = s_tile_editor.tile.y == 15 ? 11 : 15;
-        if (tile->x > max_x)
-            tile->x = max_x;
     }
 
     if (joystick_button_pressed(context->joystick, button_dpad_left)) {
@@ -1458,8 +1454,7 @@ static bool editor_pick_tile_update(state_context_t* context) {
     }
 
     if (joystick_button_pressed(context->joystick, button_dpad_right)) {
-        const uint16_t max_x = s_tile_editor.tile.y == 15 ? 11 : 15;
-        if (tile->x < max_x)
+        if (tile->x < 15)
             tile->x++;
     }
 
@@ -1504,7 +1499,11 @@ static bool editor_pick_tile_update(state_context_t* context) {
     uint16_t ty = top_edge;
 
     for (uint16_t t = 0; t < TILE_MAX; t++) {
-        video_stamp_tile(ty, tx, t, s_tile_editor.palette.value, f_bg_none);
+        video_stamp_tile(
+            ty,
+            tx,
+            t,
+            s_tile_editor.palette.value, f_bg_none);
         tx += TILE_WIDTH + 2;
         if (tx >= box.width) {
             tx = left_edge;
